@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 38" width="80" height="38">
+  <rect width="80" height="38" rx="5" fill="#005EB8"/>
+  <circle cx="16" cy="19" r="10" fill="#005EB8" stroke="white" stroke-width="2"/>
+  <text x="16" y="23" font-family="Arial,sans-serif" font-size="10" fill="white" text-anchor="middle" font-weight="bold">✓</text>
+  <text x="50" y="16" font-family="Arial,sans-serif" font-size="10" fill="white" text-anchor="middle" font-weight="bold">Gam</text>
+  <text x="50" y="28" font-family="Arial,sans-serif" font-size="10" fill="#00B5E2" text-anchor="middle" font-weight="bold">Care</text>
+</svg>

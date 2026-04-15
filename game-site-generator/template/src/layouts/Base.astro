@@ -240,11 +240,38 @@ function slugToLabel(slug: string): string {
 
         </div>
 
+        <!-- Payment methods icons row (only when brand) -->
+        {hasBrand && (
+          <div class="footer-payments">
+            <div class="footer-payments__label">Μέθοδοι Πληρωμής</div>
+            <div class="footer-payments__icons">
+              <img src="/icons/visa.svg"       alt="Visa"       class="footer-pay-icon" />
+              <img src="/icons/mastercard.svg" alt="Mastercard" class="footer-pay-icon" />
+              <img src="/icons/btc.svg"        alt="Bitcoin"    class="footer-pay-icon footer-pay-icon--crypto" />
+              <img src="/icons/eth.svg"        alt="Ethereum"   class="footer-pay-icon footer-pay-icon--crypto" />
+              <img src="/icons/usdt.svg"       alt="USDT"       class="footer-pay-icon footer-pay-icon--crypto" />
+              <img src="/icons/sol.svg"        alt="Solana"     class="footer-pay-icon footer-pay-icon--crypto" />
+              <img src="/icons/trx.svg"        alt="TRON"       class="footer-pay-icon footer-pay-icon--crypto" />
+            </div>
+          </div>
+        )}
+
         <!-- Responsible gambling disclaimer -->
         {hasBrand && (
           <div class="footer-disclaimer">
             <span class="footer-disclaimer__label">ΠΑΙΞΕ ΥΠΕΥΘΥΝΑ</span>
             Η συμμετοχή σε τυχερά παίγνια μπορεί να προκαλέσει εθισμό και απώλεια περιουσίας. Γραμμή βοήθειας ΚΕΘΕΑ: <strong>1114</strong>. Αρμόδιος Ρυθμιστής: ΕΕΕΠ. Η συμμετοχή επιτρέπεται μόνο σε άτομα άνω των <strong>21 ετών</strong>.
+          </div>
+        )}
+
+        <!-- Compliance logos row (only when brand) -->
+        {hasBrand && (
+          <div class="footer-compliance">
+            <img src="/icons/mga.svg"           alt="Malta Gaming Authority"  class="footer-compliance__logo" />
+            <img src="/icons/begambleaware.svg" alt="BeGambleAware"           class="footer-compliance__logo" />
+            <img src="/icons/gamcare.svg"        alt="GamCare"                class="footer-compliance__logo" />
+            <img src="/icons/age18.svg"          alt="18+"                    class="footer-compliance__logo footer-compliance__logo--age" />
+            <img src="/icons/dmca.svg"           alt="DMCA Protected"         class="footer-compliance__logo" />
           </div>
         )}
 
