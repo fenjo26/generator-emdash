@@ -358,10 +358,14 @@ Site:    http://localhost:4321
 
 // ─── Utils ────────────────────────────────────────────────────────────────────
 
+// Files handled natively by emdash 0.5.0 — skip from template copy
+const SKIP_FILES = new Set(["sitemap.xml.ts", "robots.txt.ts"]);
+
 function copyDir(src, dest) {
   mkdirSync(dest, { recursive: true });
   for (const entry of readdirSync(src)) {
     if (["node_modules", "dist", ".emdash"].includes(entry)) continue;
+    if (SKIP_FILES.has(entry)) continue;
     const srcPath  = join(src, entry);
     const destPath = join(dest, entry);
     if (statSync(srcPath).isDirectory()) {
