@@ -33,6 +33,30 @@ const related = pages
   .filter(p => p.id !== "main" && p.id !== slug)
   .slice(0, 8);
 
+// ── Table of Contents ─────────────────────────────────────────────────────────
+// Извлекаем все H2 из bodyHtml, добавляем id-якоря
+function slugifyHeading(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/<[^>]+>/g, "")           // убираем теги внутри заголовка
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+interface TocItem { id: string; text: string; }
+const tocItems: TocItem[] = [];
+
+const bodyHtmlWithAnchors = bodyHtml.replace(
+  /<h2([^>]*)>([\s\S]*?)<\/h2>/gi,
+  (_match, attrs, inner) => {
+    const text = inner.replace(/<[^>]+>/g, "").trim();
+    const id   = slugifyHeading(text) || `section-${tocItems.length + 1}`;
+    tocItems.push({ id, text });
+    return `<h2${attrs} id="${id}">${inner}</h2>`;
+  }
+);
+
 const hasBrand = !!brand.name && !!brand.url;
 
 const origin   = (Astro.site ?? Astro.url.origin).toString();
@@ -94,8 +118,24 @@ const breadcrumbData = {
           {pageH1}
         </h1>
 
-        {bodyHtml ? (
-          <div class="article-content" set:html={bodyHtml} />
+        {tocItems.length >= 3 && (
+          <nav class="toc">
+            <div class="toc__title">Περιεχόμενα</div>
+            <ol class="toc__list">
+              {tocItems.map((item, i) => (
+                <li class="toc__item">
+                  <a href={`#${item.id}`}>
+                    <span class="toc__num">{i + 1}.</span>
+                    {item.text}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        )}
+
+        {bodyHtmlWithAnchors ? (
+          <div class="article-content" set:html={bodyHtmlWithAnchors} />
         ) : (
           <p style="color:var(--color-muted);">Περιεχόμενο σύντομα…</p>
         )}

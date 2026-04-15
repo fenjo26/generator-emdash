@@ -328,6 +328,19 @@ async function main() {
     }
   }
 
+  // Copy promo slide images into public/slides/ (if present in input folder)
+  const slidesDir = join(inputDir, "slides");
+  if (existsSync(slidesDir)) {
+    const slidesPublic = join(publicDir, "slides");
+    mkdirSync(slidesPublic, { recursive: true });
+    for (const f of readdirSync(slidesDir)) {
+      if (/\.(webp|jpg|jpeg|png)$/i.test(f)) {
+        copyFileSync(join(slidesDir, f), join(slidesPublic, f));
+        console.log(`🖼  Copied slide: ${f}`);
+      }
+    }
+  }
+
   // Patch package.json name
   const pkgPath = join(outputDir, "package.json");
   if (existsSync(pkgPath)) {

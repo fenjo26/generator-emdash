@@ -47,6 +47,75 @@ const bodyHtml = rawHtml.replace(/<h1[^>]*>[\s\S]*?<\/h1>/i, "").trim();
     </div>
   )}
 
+  <!-- Промо-баннеры — только если есть бренд -->
+  {brand.name && brand.url && (
+    <div class="container">
+      <div class="promo-slides" id="promo-slides">
+
+        <div class="promo-slide promo-slide--1 is-active">
+          <a href={brand.url} target="_blank" rel="nofollow noopener sponsored">
+            <img src="/slides/slide1.webp" alt="promo-1"
+              onerror="this.closest('.promo-slide').style.display='none'" />
+            <div class="promo-slide__body">
+              <p class="promo-slide__text">Κάνε κατάθεση<br>και πάρε το μπόνους</p>
+              <span class="promo-slide__btn">Τώρα</span>
+            </div>
+          </a>
+        </div>
+
+        <div class="promo-slide promo-slide--2">
+          <a href={brand.url} target="_blank" rel="nofollow noopener sponsored">
+            <img src="/slides/slide2.webp" alt="promo-2"
+              onerror="this.closest('.promo-slide').style.display='none'" />
+            <div class="promo-slide__body">
+              <p class="promo-slide__text">Drops &amp; Wins</p>
+              <p class="promo-slide__amount">€3000</p>
+              <div class="promo-slide__btns">
+                <span class="promo-slide__btn promo-slide__btn--yellow">Συμμετοχή</span>
+                <span class="promo-slide__btn promo-slide__btn--outline">Περισσότερα</span>
+              </div>
+            </div>
+          </a>
+        </div>
+
+        <!-- Dots -->
+        <div class="promo-dots">
+          <button class="promo-dot is-active" data-idx="0" aria-label="Slide 1"></button>
+          <button class="promo-dot" data-idx="1" aria-label="Slide 2"></button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const slides = Array.from(document.querySelectorAll('.promo-slide'));
+      const dots   = Array.from(document.querySelectorAll('.promo-dot'));
+      let current  = 0;
+      let timer: ReturnType<typeof setInterval>;
+
+      function goTo(idx: number) {
+        slides[current].classList.remove('is-active');
+        dots[current].classList.remove('is-active');
+        current = idx % slides.length;
+        slides[current].classList.add('is-active');
+        dots[current].classList.add('is-active');
+      }
+
+      function startAuto() {
+        timer = setInterval(() => goTo(current + 1), 4000);
+      }
+
+      dots.forEach(dot => {
+        dot.addEventListener('click', () => {
+          clearInterval(timer);
+          goTo(Number((dot as HTMLElement).dataset.idx));
+          startAuto();
+        });
+      });
+
+      startAuto();
+    </script>
+  )}
+
   <!-- SEO контент из main.txt (без H1 — он уже в hero) -->
   {bodyHtml && (
     <section class="section">
