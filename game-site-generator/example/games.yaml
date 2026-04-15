@@ -1,0 +1,192 @@
+# EmDash Game Site Generator - Example Input
+# Fill this file with your game data, then run:
+#   node generate.js --input example/games.yaml --output ./my-game-site
+
+site:
+  name: "GameHub"
+  tagline: "Скачивай игры бесплатно"
+  url: "https://gamehub.example.com"
+
+# ──────────────────────────────────────────────────────────
+# GAMES
+# Each game becomes an SEO-optimized page at /games/<slug>
+# ──────────────────────────────────────────────────────────
+games:
+
+  - title: "Minecraft"
+    slug: "minecraft"
+    excerpt: "Легендарная игра-песочница с бесконечными возможностями строительства и выживания."
+    description: |
+      Minecraft — культовая игра-песочница от разработчика Mojang Studios. В этом бескрайнем мире из
+      блоков вы можете строить любые конструкции, добывать ресурсы, сражаться с мобами и исследовать
+      бесконечно генерируемые ландшафты. Игра подходит для всех возрастов и предлагает несколько режимов:
+      выживание, творческий, приключения и спектатор.
+
+      Режим выживания потребует от вас собирать ресурсы, строить укрытие и защищаться от врагов.
+      В творческом режиме вам доступны все материалы для воплощения самых смелых идей.
+    developer: "Mojang Studios"
+    publisher: "Microsoft"
+    year: 2011
+    rating: "E10+"
+    file_size: "1.2 GB"
+    version: "1.21.4"
+    genre:
+      - Sandbox
+      - Survival
+      - Adventure
+    platform:
+      - PC
+      - Android
+      - iOS
+    image: "https://upload.wikimedia.org/wikipedia/en/5/51/Minecraft_cover.png"
+    download_url: "https://minecraft.net"
+    system_requirements: "Windows 10/11, 8 ГБ ОЗУ, GPU с поддержкой OpenGL 4.4"
+    seo_title: "Скачать Minecraft бесплатно на ПК — Последняя версия 2025"
+    seo_description: "Скачайте Minecraft последней версии бесплатно на русском языке. Полная версия с модами, готовые миры и мультиплеер."
+    seo_keywords: "скачать minecraft, minecraft бесплатно, майнкрафт скачать"
+
+  - title: "GTA V"
+    slug: "gta-v"
+    excerpt: "Эпическая игра с открытым миром в стиле криминального боевика от Rockstar Games."
+    description: |
+      Grand Theft Auto V — культовая игра с открытым миром от Rockstar Games, действие которой
+      разворачивается в вымышленном городе Лос-Сантос. Вас ждут три главных героя с переплетающимися
+      судьбами, масштабные ограбления и невероятная свобода действий.
+
+      Онлайн-режим GTA Online предлагает тысячи часов игрового контента: миссии, гонки, бизнесы и
+      постоянно обновляемые дополнения.
+    developer: "Rockstar Games"
+    publisher: "Rockstar Games"
+    year: 2013
+    rating: "18+"
+    file_size: "95 GB"
+    version: "1.0.3351"
+    genre:
+      - Action
+      - Open World
+      - Crime
+    platform:
+      - PC
+      - PlayStation
+      - Xbox
+    image: "https://upload.wikimedia.org/wikipedia/en/a/a5/Grand_Theft_Auto_V.png"
+    download_url: "https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/"
+    system_requirements: "Windows 10, Intel i5-2500K, 8 ГБ ОЗУ, NVIDIA GTX 660"
+    seo_title: "Скачать GTA 5 бесплатно на ПК — Grand Theft Auto V"
+    seo_description: "Скачать GTA 5 (Grand Theft Auto V) бесплатно на ПК. Русская версия, мультиплеер, все обновления включены."
+    seo_keywords: "скачать gta 5, gta v бесплатно, grand theft auto 5"
+
+  - title: "Counter-Strike 2"
+    slug: "cs2"
+    excerpt: "Легендарный тактический шутер нового поколения на движке Source 2."
+    description: |
+      Counter-Strike 2 — это обновлённая версия легендарного CS:GO на движке Source 2. Улучшенная
+      графика, новая физика дыма, обновлённые карты и более плавный геймплей.
+
+      Игра распространяется бесплатно и доступна всем владельцам CS:GO через обновление.
+    developer: "Valve Corporation"
+    publisher: "Valve Corporation"
+    year: 2023
+    rating: "18+"
+    file_size: "35 GB"
+    version: "Latest"
+    genre:
+      - Shooter
+      - Tactical
+      - Multiplayer
+    platform:
+      - PC
+    image: "https://upload.wikimedia.org/wikipedia/en/f/f2/CS2_Cover.jpg"
+    download_url: "https://store.steampowered.com/app/730/CounterStrike_2/"
+    system_requirements: "Windows 10, Intel Core i5 750, 8 ГБ ОЗУ, NVIDIA GTX 970"
+    seo_title: "Скачать Counter-Strike 2 бесплатно — CS2 для ПК"
+    seo_description: "Скачать Counter-Strike 2 бесплатно. CS2 — обновлённый тактический шутер от Valve на движке Source 2."
+    seo_keywords: "скачать cs2, counter-strike 2 бесплатно, cs2 для пк"
+
+  - title: "Roblox"
+    slug: "roblox"
+    excerpt: "Крупнейшая онлайн-платформа для создания и игры в миллионы пользовательских игр."
+    description: |
+      Roblox — это не просто игра, а целая платформа для создания и публикации игр. Миллионы
+      пользовательских миров и игр на любой вкус: симуляторы, шутеры, ролевые игры, гонки и многое другое.
+
+      Платформа бесплатна, а для создания игр используется язык Lua.
+    developer: "Roblox Corporation"
+    year: 2006
+    rating: "E"
+    file_size: "500 MB"
+    genre:
+      - Sandbox
+      - Platform
+      - Multiplayer
+    platform:
+      - PC
+      - Android
+      - iOS
+      - Xbox
+    image: "https://upload.wikimedia.org/wikipedia/commons/3/3a/Roblox_player_icon_black.png"
+    download_url: "https://www.roblox.com/download"
+    seo_title: "Скачать Roblox бесплатно — Последняя версия для ПК и телефона"
+    seo_description: "Скачать Roblox бесплатно на ПК, Android и iOS. Миллионы игр в одном приложении."
+    seo_keywords: "скачать roblox, роблокс скачать бесплатно"
+
+# ──────────────────────────────────────────────────────────
+# SEO PAGES
+# Static text pages for SEO, at /pages/<slug>
+# ──────────────────────────────────────────────────────────
+seo_pages:
+
+  - title: "Скачать игры на ПК бесплатно"
+    slug: "skachat-igry-na-pc
+"
+    heading: "Скачать игры на ПК бесплатно — Лучшие игры 2025 года"
+    content: |
+      Добро пожаловать в наш каталог бесплатных игр для ПК! Здесь собраны лучшие игры 2025 года,
+      доступные для скачивания на компьютер с Windows, macOS и Linux.
+
+      Наш сайт предлагает широкий выбор игровых жанров: экшен и шутеры, стратегии и RPG,
+      симуляторы и инди-игры. Все игры проверены и готовы к установке.
+
+      Преимущества скачивания игр через наш сайт:
+      прямые ссылки без лишних перенаправлений, актуальные версии игр с последними обновлениями,
+      подробные описания и системные требования, оценки и отзывы сообщества.
+
+      Для начала загрузки выберите понравившуюся игру из каталога, ознакомьтесь с системными
+      требованиями и нажмите кнопку «Скачать». Большинство игр доступны бесплатно или условно-бесплатно.
+    seo_title: "Скачать игры на ПК бесплатно 2025 — Топ-100 игр для Windows"
+    seo_description: "Скачайте бесплатные игры для ПК. Огромный каталог: экшен, RPG, стратегии, симуляторы. Прямые ссылки, без регистрации."
+    seo_keywords: "скачать игры на пк бесплатно, бесплатные игры для windows 2025"
+
+  - title: "Лучшие игры на Android 2025"
+    slug: "luchshie-igry-android-2025"
+    heading: "Лучшие бесплатные игры на Android 2025"
+    content: |
+      Android-игры достигли невероятного уровня качества. В 2025 году смартфоны способны запускать
+      игры, которые ещё несколько лет назад были доступны только на консолях.
+
+      В нашем каталоге представлены лучшие бесплатные Android-игры во всех жанрах:
+      мобильные RPG с открытым миром, казуальные игры для коротких сессий,
+      онлайн-баттлроялы, стратегии и головоломки.
+
+      Все игры совместимы с Android 9.0 и выше, большинство работают без интернета.
+    seo_title: "Лучшие игры на Android 2025 — Топ бесплатных мобильных игр"
+    seo_description: "Лучшие бесплатные игры для Android в 2025 году. Экшен, RPG, стратегии — скачай прямо сейчас."
+    seo_keywords: "лучшие игры android 2025, бесплатные игры для андроид"
+
+  - title: "Топ-10 шутеров для ПК"
+    slug: "top-10-shuterov-dlya-pk"
+    heading: "Топ-10 лучших шутеров для ПК в 2025 году"
+    content: |
+      Шутеры от первого лица остаются одним из самых популярных жанров в PC-гейминге.
+      Мы собрали десятку лучших шутеров, доступных для скачивания в 2025 году.
+
+      1. Counter-Strike 2 — классический тактический шутер, ставший ещё лучше на движке Source 2
+      2. Valorant — стратегический шутер от Riot Games с уникальными агентами
+      3. Apex Legends — динамичный баттлроял с командной механикой
+      4. Overwatch 2 — командный шутер с разнообразными героями
+      5. Warframe — кооперативный экшен в космическом сеттинге
+
+      Большинство из них распространяются бесплатно по модели free-to-play.
+    seo_title: "Топ-10 лучших шутеров для ПК 2025 — Скачать бесплатно"
+    seo_description: "Лучшие шутеры для ПК в 2025 году. CS2, Valorant, Apex Legends и другие — скачай бесплатно."
+    seo_keywords: "лучшие шутеры для пк, топ шутеры 2025, скачать шутер бесплатно"

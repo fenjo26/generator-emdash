@@ -1,0 +1,15 @@
+{
+  "name": "game-site-generator",
+  "version": "1.0.0",
+  "description": "EmDash game collection site generator",
+  "type": "module",
+  "bin": {
+    "game-site-generator": "./generate.js"
+  },
+  "scripts": {
+    "generate": "node generate.js"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  }
+}

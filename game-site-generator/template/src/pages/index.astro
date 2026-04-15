@@ -1,0 +1,81 @@
+---
+import { getEmDashCollection, getSiteSettings } from "emdash";
+import Base from "../layouts/Base.astro";
+import brand from "../brand.json";
+
+const settings = await getSiteSettings();
+
+const { entries: allPages, cacheHint } = await getEmDashCollection("pages");
+Astro.cache?.set?.(cacheHint);
+
+const mainPage = allPages.find(p => p.id === "main") ?? null;
+const articles  = allPages.filter(p => p.id !== "main");
+
+const siteName = settings.title ?? "GameGuide";
+const siteDesc = (mainPage?.data?.seo_desc as string) || settings.tagline || "";
+
+// Извлекаем H1 из html_content, убираем его из тела страницы
+const rawHtml = (mainPage?.data?.html_content as string) ?? "";
+const h1Match = rawHtml.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+const heroH1   = h1Match ? h1Match[1].replace(/<[^>]+>/g, "").trim() : siteName;
+const bodyHtml = rawHtml.replace(/<h1[^>]*>[\s\S]*?<\/h1>/i, "").trim();
+---
+
+<Base title={undefined} description={siteDesc}>
+
+  <!-- Hero с H1 из main.txt -->
+  <section class="hero">
+    <img src="/banner.webp" alt={siteName} class="hero__bg" onerror="this.style.display='none'" />
+    <div class="container hero__inner">
+      <span class="hero__label">Game Guide</span>
+      <h1 class="hero__title">{heroH1}</h1>
+      {siteDesc && <p class="hero__desc">{siteDesc}</p>}
+    </div>
+  </section>
+
+  <!-- CTA под hero — только если есть бренд -->
+  {brand.name && brand.url && (
+    <div class="hero-cta">
+      <div class="container hero-cta__inner">
+        <span class="hero-cta__label">
+          Παίξε στο <strong>{brand.name}</strong> — Αξιόπιστο καζίνο για Έλληνες παίκτες
+        </span>
+        <a href={brand.url} target="_blank" rel="noopener sponsored" class="btn-bonus">
+          🎁 Πάρε το Μπόνους
+        </a>
+      </div>
+    </div>
+  )}
+
+  <!-- SEO контент из main.txt (без H1 — он уже в hero) -->
+  {bodyHtml && (
+    <section class="section">
+      <div class="container">
+        <div class="article-layout article-layout--full">
+          <div class="article-content" set:html={bodyHtml} />
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Сетка статей -->
+  {articles.length > 0 && (
+    <section class="section" style="padding-top:0">
+      <div class="container">
+        <h2 class="section__title">Οδηγοί &amp; Άρθρα</h2>
+        <div class="articles-grid">
+          {articles.map(article => (
+            <a href={`/${article.id}/`} class="article-card">
+              <div class="article-card__title">{article.data.title as string}</div>
+              {article.data.seo_desc && (
+                <div class="article-card__desc">{article.data.seo_desc as string}</div>
+              )}
+              <div class="article-card__arrow">Διαβάστε περισσότερα →</div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+</Base>

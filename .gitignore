@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+.astro/
+
+# EmDash generated
+.emdash/
+data.db
+data.db-shm
+data.db-wal
+uploads/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Generated sites (not source code)
+sites/
+
+# Test SEO content (private input data)
+testseo/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/
+.idea/
+*.swp

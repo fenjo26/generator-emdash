@@ -1,0 +1,265 @@
+---
+import { getEmDashCollection, getSiteSettings } from "emdash";
+import "../styles/theme.css";
+import brand from "../brand.json";
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  canonical?: string;
+  noIndex?: boolean;
+}
+
+const settings = await getSiteSettings();
+const siteName = brand.siteName || settings.title || "GameGuide";
+
+const {
+  title,
+  description = settings.tagline ?? "",
+  image,
+  canonical,
+  noIndex = false,
+} = Astro.props;
+
+const pageTitle = title ? `${title} — ${siteName}` : siteName;
+const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
+
+// Nav items из коллекции (skip "main")
+const { entries: pages } = await getEmDashCollection("pages");
+const navPages = pages
+  .filter(p => p.id !== "main" && p.data?.title)
+  .slice(0, 5);
+
+// Service pages для футера и навигации
+const { entries: servicePages } = await getEmDashCollection("service_pages");
+
+// Author + Publisher для мета-тегов
+const { entries: authors } = await getEmDashCollection("authors");
+const firstAuthor = authors[0]?.data?.title as string | undefined;
+const publisher   = siteName;
+
+const hasBrand = !!brand.name && !!brand.url;
+
+/**
+ * Превращает slug в короткий nav-лейбл.
+ * Убирает префиксы игр, годы, оставляет суть.
+ * cs2-account-2026 → Account
+ * bf6-classes       → Classes
+ */
+function slugToLabel(slug: string): string {
+  const GAME_PREFIXES = /^(cs2?|bf[0-9]+|cod|gta[0-9]*|lol|wow|pubg|dota2?|apex|valorant|minecraft|fortnite|counter.?strike.?[0-9]*|battlefield.?[0-9]*)[-_]/i;
+  const YEAR_SUFFIX   = /[-_]?\d{4}[a-z]?$/i;
+
+  const clean = slug
+    .replace(GAME_PREFIXES, '')
+    .replace(YEAR_SUFFIX, '')
+    .split(/[-_]/)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+    .trim();
+
+  return clean || slug;
+}
+---
+
+<!doctype html>
+<html lang="el">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png" sizes="32x32" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content={noIndex ? "noindex,nofollow" : "index,follow"} />
+    {firstAuthor && <meta name="author" content={firstAuthor} />}
+    <meta name="publisher" content={publisher} />
+    <link rel="canonical" href={canonicalUrl} />
+
+    <meta property="og:type"        content="website" />
+    <meta property="og:title"       content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url"         content={canonicalUrl} />
+    <meta property="og:site_name"   content={siteName} />
+    {image && <meta property="og:image" content={image} />}
+
+    <meta name="twitter:card"        content="summary_large_image" />
+    <meta name="twitter:title"       content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    {image && <meta name="twitter:image" content={image} />}
+
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": siteName,
+      "url": new URL("/", Astro.site ?? Astro.url.origin).href,
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": new URL("/search?q={search_term_string}", Astro.site ?? Astro.url.origin).href,
+        },
+        "query-input": "required name=search_term_string",
+      },
+    })} />
+  </head>
+  <body>
+    <!-- Affiliate Brand Banner -->
+    {hasBrand && (
+      <div class="brand-banner">
+        <div class="container brand-banner__inner">
+          <span class="brand-banner__text">Παίξε στο <strong>{brand.name}</strong> — Αξιόπιστο καζίνο για παικτές</span>
+          <a href={brand.url} target="_blank" rel="noopener sponsored" class="brand-banner__cta">
+            Επισκεφθείτε το {brand.name} →
+          </a>
+        </div>
+      </div>
+    )}
+
+    <!-- Site Header -->
+    <header class="site-header">
+      <div class="container site-header__inner">
+        <!-- Логотип: картинка если есть, иначе текст -->
+        <a href="/" class="site-header__logo">
+          <img
+            src="/logo.webp"
+            alt={siteName}
+            class="site-header__logo-img"
+            onerror="this.style.display='none'; document.getElementById('logo-text').style.display='inline';"
+          />
+          <span id="logo-text" style="display:none">
+            <span>{siteName.charAt(0)}</span>{siteName.slice(1)}
+          </span>
+        </a>
+
+        <nav class="site-header__nav">
+          <a href="/">Αρχική</a>
+          {navPages.map(p => (
+            <a href={`/${p.id}/`}>{slugToLabel(p.id)}</a>
+          ))}
+        </nav>
+
+        <!-- Hamburger (mobile only) -->
+        <button class="burger" id="burger-btn" aria-label="Μενού" aria-expanded="false">
+          <span class="burger__line"></span>
+          <span class="burger__line"></span>
+          <span class="burger__line"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Mobile nav drawer -->
+    <div class="mobile-nav" id="mobile-nav" aria-hidden="true">
+      <div class="mobile-nav__overlay" id="nav-overlay"></div>
+      <nav class="mobile-nav__drawer">
+        <a href="/">Αρχική</a>
+        {navPages.map(p => (
+          <a href={`/${p.id}/`}>{slugToLabel(p.id)}</a>
+        ))}
+        {hasBrand && (
+          <a href={brand.url} target="_blank" rel="noopener sponsored" class="mobile-nav__cta">
+            🎁 Πάρε το Μπόνους
+          </a>
+        )}
+      </nav>
+    </div>
+
+    <script>
+      const btn     = document.getElementById('burger-btn')!;
+      const nav     = document.getElementById('mobile-nav')!;
+      const overlay = document.getElementById('nav-overlay')!;
+
+      function openMenu() {
+        nav.classList.add('is-open');
+        btn.classList.add('is-open');
+        btn.setAttribute('aria-expanded', 'true');
+        nav.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeMenu() {
+        nav.classList.remove('is-open');
+        btn.classList.remove('is-open');
+        btn.setAttribute('aria-expanded', 'false');
+        nav.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+      }
+
+      btn.addEventListener('click', () => nav.classList.contains('is-open') ? closeMenu() : openMenu());
+      overlay.addEventListener('click', closeMenu);
+      document.addEventListener('keydown', e => e.key === 'Escape' && closeMenu());
+    </script>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+
+        <!-- Top grid: brand | articles | service pages -->
+        <div class="footer-grid">
+
+          <!-- Col 1: Brand / logo -->
+          <div class="footer-brand">
+            <a href="/" class="footer-brand__name">{siteName}</a>
+            {settings.tagline && <p class="footer-brand__tagline">{settings.tagline}</p>}
+            {hasBrand && (
+              <a href={brand.url} target="_blank" rel="noopener sponsored" class="footer-brand__cta">
+                🎁 {brand.name}
+              </a>
+            )}
+          </div>
+
+          <!-- Col 2: Main articles -->
+          {navPages.length > 0 && (
+            <div class="footer-col">
+              <div class="footer-col__heading">Οδηγοί</div>
+              <ul class="footer-col__list">
+                {navPages.map(p => (
+                  <li><a href={`/${p.id}/`}>{slugToLabel(p.id)}</a></li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <!-- Col 3: Service pages -->
+          {servicePages.length > 0 && (
+            <div class="footer-col">
+              <div class="footer-col__heading">Πληροφορίες</div>
+              <ul class="footer-col__list">
+                {servicePages.map(p => (
+                  <li><a href={`/${p.id}/`}>{((p.data?.title as string) ?? slugToLabel(p.id)).split(/[|:—–]/)[0].trim()}</a></li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+        </div>
+
+        <!-- Responsible gambling disclaimer -->
+        {hasBrand && (
+          <div class="footer-disclaimer">
+            <span class="footer-disclaimer__label">ΠΑΙΞΕ ΥΠΕΥΘΥΝΑ</span>
+            Η συμμετοχή σε τυχερά παίγνια μπορεί να προκαλέσει εθισμό και απώλεια περιουσίας. Γραμμή βοήθειας ΚΕΘΕΑ: <strong>1114</strong>. Αρμόδιος Ρυθμιστής: ΕΕΕΠ. Η συμμετοχή επιτρέπεται μόνο σε άτομα άνω των <strong>21 ετών</strong>.
+          </div>
+        )}
+
+        <!-- Bottom bar: copyright + author -->
+        <div class="footer-bottom">
+          <span>&copy; {new Date().getFullYear()} {siteName}. Όλα τα δικαιώματα διατηρούνται.</span>
+          {firstAuthor && (
+            <span class="footer-bottom__author">
+              Γράφτηκε από&nbsp;
+              <a href={`/authors/${authors[0].id}/`}>{firstAuthor}</a>
+            </span>
+          )}
+        </div>
+
+      </div>
+    </footer>
+  </body>
+</html>

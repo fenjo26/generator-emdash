@@ -1,0 +1,137 @@
+---
+import { getEmDashCollection } from "emdash";
+import Base from "../layouts/Base.astro";
+import brand from "../brand.json";
+import { getSiteSettings } from "emdash";
+
+const { slug } = Astro.params as { slug: string };
+
+const [{ entries: pages }, { entries: servicePages }, { entries: authors }, settings] = await Promise.all([
+  getEmDashCollection("pages"),
+  getEmDashCollection("service_pages"),
+  getEmDashCollection("authors"),
+  getSiteSettings(),
+]);
+
+const entry = pages.find(p => p.id === slug) ?? servicePages.find(p => p.id === slug) ?? null;
+
+if (!entry) {
+  return Astro.redirect("/404", 404);
+}
+
+const title       = (entry.data?.title        as string) ?? "";
+const seoDesc     = (entry.data?.seo_desc     as string) ?? "";
+const rawHtml     = (entry.data?.html_content as string) ?? "";
+
+// Извлекаем H1 из html_content, убираем из тела
+const h1Match  = rawHtml.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+const pageH1   = h1Match ? h1Match[1].replace(/<[^>]+>/g, "").trim() : title;
+const bodyHtml = rawHtml.replace(/<h1[^>]*>[\s\S]*?<\/h1>/i, "").trim();
+
+// Сайдбар — похожие статьи
+const related = pages
+  .filter(p => p.id !== "main" && p.id !== slug)
+  .slice(0, 8);
+
+const hasBrand = !!brand.name && !!brand.url;
+
+const origin   = (Astro.site ?? Astro.url.origin).toString();
+const pageUrl  = new URL(`/${slug}/`, origin).href;
+const siteUrl  = new URL("/", origin).href;
+const siteName = brand.siteName || settings.title || "GameGuide";
+const firstAuthor = authors[0]?.data?.title as string | undefined;
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": pageH1,
+  "description": seoDesc,
+  "url": pageUrl,
+  "mainEntityOfPage": { "@type": "WebPage", "@id": pageUrl },
+  "publisher": {
+    "@type": "Organization",
+    "name": siteName,
+    "url": siteUrl,
+    "logo": { "@type": "ImageObject", "url": new URL("/logo.webp", origin).href },
+  },
+  ...(firstAuthor ? {
+    "author": {
+      "@type": "Person",
+      "name": firstAuthor,
+      "url": new URL(`/authors/${authors[0].id}/`, origin).href,
+    },
+  } : {}),
+};
+
+const breadcrumbData = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Αρχική", "item": siteUrl },
+    { "@type": "ListItem", "position": 2, "name": pageH1,   "item": pageUrl },
+  ],
+};
+---
+
+<Base title={pageH1} description={seoDesc}>
+  <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbData)} />
+
+  <div class="container" style="padding-top:1.5rem;">
+    <nav class="breadcrumb">
+      <a href="/">Αρχική</a>
+      <span>›</span>
+      <span>{pageH1}</span>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class={`article-layout${!hasBrand && related.length === 0 ? ' article-layout--full' : ''}`}>
+
+      <article>
+        <!-- H1 из txt-файла страницы -->
+        <h1 style="font-size:clamp(1.5rem,4vw,2.25rem); font-weight:900; line-height:1.2; margin-bottom:1.5rem;">
+          {pageH1}
+        </h1>
+
+        {bodyHtml ? (
+          <div class="article-content" set:html={bodyHtml} />
+        ) : (
+          <p style="color:var(--color-muted);">Περιεχόμενο σύντομα…</p>
+        )}
+      </article>
+
+      {(hasBrand || related.length > 0) && (
+        <aside class="sidebar">
+          {hasBrand && (
+            <div class="sidebar-card">
+              <div class="sidebar-card__title">Προτεινόμενο Καζίνο</div>
+              <div class="sidebar-brand__name">{brand.name}</div>
+              <p style="font-size:0.8rem; color:var(--color-text-2); margin:0.5rem 0;">
+                Ασφαλές και αξιόπιστο καζίνο για Έλληνες παίκτες.
+              </p>
+              <a href={brand.url} target="_blank" rel="noopener sponsored" class="sidebar-brand__cta">
+                Παίξε στο {brand.name} →
+              </a>
+            </div>
+          )}
+
+          {related.length > 0 && (
+            <div class="sidebar-card">
+              <div class="sidebar-card__title">Σχετικά Άρθρα</div>
+              <ul class="sidebar-nav">
+                {related.map(p => (
+                  <li>
+                    <a href={`/${p.id}/`}>
+                      {(p.data.title as string).split(/[|:—–]/)[0].trim()}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </aside>
+      )}
+    </div>
+  </div>
+</Base>
