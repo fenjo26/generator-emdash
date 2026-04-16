@@ -1,6 +1,7 @@
 ---
 import { getEmDashCollection } from "emdash";
 import Base from "../layouts/Base.astro";
+import GameHero from "../components/GameHero.astro";
 import brand from "../brand.json";
 import { getSiteSettings } from "emdash";
 
@@ -100,6 +101,9 @@ const breadcrumbData = {
 <Base title={pageH1} description={seoDesc}>
   <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
   <script type="application/ld+json" set:html={JSON.stringify(breadcrumbData)} />
+
+  <!-- GameHero block — fetches settings from CMS game_hero collection -->
+  <GameHero />
 
   <div class="container" style="padding-top:1.5rem;">
     <nav class="breadcrumb">

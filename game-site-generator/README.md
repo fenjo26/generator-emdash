@@ -20,7 +20,7 @@ npm install
 npx emdash dev
 ```
 
-Сайт: `http://localhost:4321`
+Сайт: `http://localhost:4321`  
 Админка: `http://localhost:4321/_emdash/admin`
 
 ---
@@ -32,12 +32,18 @@ my-site.gr/
 ├── banner.webp          # фон hero-секции (также .jpg / .png)
 ├── logo.webp            # логотип в шапке (также .jpg / .png)
 ├── favicon.svg          # иконка вкладки (также .png / .ico)
+├── game-bg.webp         # (необязательно) фон для Game Hero блока
+├── slides/              # (необязательно) промо-баннеры
+│   ├── slide1.webp
+│   └── slide2.webp
 └── text/
     ├── brend.txt        # (необязательно) партнёрский бренд
+    ├── game.txt         # (необязательно) настройки Game Hero блока
     ├── main.txt         # главная страница (обязательно)
     ├── cs2-weapons.txt  # статья-гайд
     ├── bf6-classes.txt  # ещё статья
     ├── ...              # любое количество статей
+    ├── seo/             # игнорируется — только для ключевых слов
     ├── authors/
     │   ├── nikos.txt    # страница автора
     │   └── nikos.webp   # фото автора
@@ -46,8 +52,6 @@ my-site.gr/
         ├── contacts.txt
         └── privacy-policy.txt
 ```
-
-> Папка `text/seo/` игнорируется генератором — туда можно складывать файлы для ключевых слов.
 
 ---
 
@@ -64,13 +68,12 @@ Slug: cs2-weapons-guide
 текст:
 <h1>Οδηγός Όπλων CS2</h1>
 <p>Πλήρης ανάλυση κάθε όπλου...</p>
-...
 ```
 
-- `Title` — title тег страницы и мета-заголовок
+- `Title` — title тег и мета-заголовок
 - `Description` — meta description
 - `Slug` — URL страницы (`/cs2-weapons-guide/`)
-- Всё после `текст:` — HTML-контент страницы. `<h1>` из него автоматически поднимается в hero-секцию.
+- Всё после `текст:` — HTML-контент. `<h1>` автоматически поднимается в hero-секцию страницы.
 
 ---
 
@@ -87,30 +90,44 @@ Casino Name
 https://link.com
 ```
 
-Если файл отсутствует или пустой — все партнёрские блоки скрываются автоматически.
+Если файл отсутствует или пустой — все партнёрские блоки (CTA-баннер, промо-слайды, сайдбар, иконки платёжных методов, compliance-логотипы) скрываются автоматически.
+
+---
+
+## Формат game.txt (Game Hero блок)
+
+Добавь `game.txt` в папку `text/` чтобы включить анимированный hero-блок игры на всех страницах сайта:
+
+```
+Game: Aviator
+Subtitle: Fly High, Bet Smart, Cash Out at the Perfect Moment
+RTP: 97%
+MaxWin: 10,000×
+Volatility: High
+PlayUrl: https://casino-link.com
+DemoUrl: https://casino-link.com
+PlayLabel: Play Now
+DemoLabel: Try Demo Free
+AccentColor: #4f8ef7
+Multiplier: 1.00
+```
+
+Все эти поля редактируются и через админку — без перегенерации сайта.
+
+Для кастомного фона блока положи `game-bg.webp` (или `.jpg` / `.png`) в корень папки сайта.
+
+Если `game.txt` нет — блок отключён (`enabled: false`) и не отображается.
 
 ---
 
 ## Что делает генератор
 
-1. Парсит все `.txt` файлы из папки `text/`
-2. Собирает `seed.json` с коллекциями EmDash (`pages`, `service_pages`, `authors`)
+1. Парсит все `.txt` файлы из `text/`
+2. Собирает `seed.json` со всеми коллекциями EmDash
 3. Копирует шаблон сайта
-4. Копирует ассеты (`banner`, `logo`, `favicon`, фото авторов) в `public/`
-5. Записывает `src/brand.json` с данными партнёрского бренда
-
----
-
-## Запуск нескольких сайтов
-
-В папке `sites/` есть скрипт для запуска нескольких сайтов одновременно:
-
-```bash
-cd sites
-./start-sites.sh
-```
-
-Скрипт убивает порты 4321/4322 и запускает каждый сайт на своём порту.
+4. Копирует ассеты (`banner`, `logo`, `favicon`, фото авторов, промо-слайды, `game-bg`) в `public/`
+5. Записывает `src/brand.json` с данными бренда
+6. Патчит `package.json` (имя пакета = имя домена)
 
 ---
 
@@ -121,6 +138,48 @@ cd sites
 | `pages` | Главная + все статьи | `/`, `/{slug}/` |
 | `service_pages` | Служебные страницы | `/{slug}/` |
 | `authors` | Авторы | `/authors/{slug}/` |
+| `game_hero` | Настройки Game Hero блока | только в админке |
+
+Все коллекции редактируются из `/_emdash/admin`.
+
+---
+
+## Game Hero блок
+
+Анимированный интерактивный блок для игровых страниц — показывается на главной и всех статьях.
+
+**Что отображается:**
+- Летящий самолёт по анимированной кривой множителя
+- Счётчик множителя (анимируется от 1.00 вверх при каждой загрузке)
+- Карточки статистики: RTP, Max Win, Volatility
+- Кнопки Play Now и Try Demo Free
+- Кастомный фон (загружается через админку или из `game-bg.webp`)
+- Акцентный цвет меняет кнопки, glow-эффекты и значения статистики
+
+**Редактирование через админку** (`Game Hero Block`):
+
+| Поле | Описание |
+|------|----------|
+| Show Hero Block | Вкл/выкл блок без пересборки сайта |
+| Game Name | Название игры (большой заголовок) |
+| Subtitle | Подпись под названием |
+| RTP / Max Win / Volatility | Значения в карточках статистики |
+| Play Now URL / Try Demo URL | Ссылки на кнопках |
+| Play Button Text / Demo Button Text | Текст кнопок на любом языке |
+| Accent Color | HEX-цвет акцента |
+| Background Image | Загрузи любую картинку через медиабиблиотеку |
+
+---
+
+## Футер
+
+Футер состоит из трёх колонок (название сайта, статьи, служебные страницы) и нескольких дополнительных блоков, которые появляются только когда задан `brend.txt`:
+
+**Иконки платёжных методов** — Visa, Mastercard, BTC, ETH, USDT, SOL, TRX  
+**Дисклеймер** — ΠΑΙΞΕ ΥΠΕΥΘΥΝΑ с текстом об ответственной игре  
+**Compliance-логотипы** — MGA, BeGambleAware, GamCare, 18+, DMCA Protected
+
+Все SVG-иконки хранятся в `public/icons/` шаблона и копируются в каждый сайт при генерации.
 
 ---
 
@@ -129,28 +188,43 @@ cd sites
 ```
 template/
 ├── astro.config.mjs        # Astro + EmDash, output: server, trailingSlash: ignore
-├── package.json
-├── src/
-│   ├── brand.json          # генерируется автоматически
-│   ├── middleware.ts        # подключает EmDash middleware
-│   ├── live.config.ts       # регистрация коллекций EmDash
-│   ├── layouts/
-│   │   └── Base.astro       # шапка, футер, мета-теги, SEO
-│   ├── pages/
-│   │   ├── index.astro      # главная: hero + SEO-контент + сетка статей
-│   │   ├── [slug].astro     # страница статьи с сайдбаром
-│   │   └── authors/
-│   │       └── [slug].astro # страница автора
-│   └── styles/
-│       └── theme.css        # тёмная игровая тема
-└── public/                  # сюда копируются ассеты при генерации
+├── package.json            # emdash ^0.5.0
+├── public/
+│   └── icons/              # SVG иконки платёжных методов и compliance-логотипы
+└── src/
+    ├── brand.json          # генерируется автоматически
+    ├── middleware.ts        # подключает EmDash middleware
+    ├── live.config.ts      # регистрация коллекций EmDash
+    ├── components/
+    │   └── GameHero.astro  # анимированный Game Hero блок
+    ├── layouts/
+    │   └── Base.astro      # шапка, футер, мета-теги, SEO, WebSite schema
+    ├── pages/
+    │   ├── index.astro     # главная: hero + Game Hero + промо-слайды + статьи
+    │   ├── [slug].astro    # страница статьи: TOC + сайдбар + structured data
+    │   └── authors/
+    │       └── [slug].astro # страница автора с Person schema
+    └── styles/
+        └── theme.css       # тёмная игровая тема
 ```
+
+---
+
+## SEO и structured data
+
+На каждой странице автоматически генерируются:
+
+- `WebSite` schema с `SearchAction` (в Base.astro на всех страницах)
+- `Article` schema с автором и издателем (на страницах статей)
+- `BreadcrumbList` schema (на страницах статей и авторов)
+- `Person` schema (на страницах авторов)
+- Таблица содержания (TOC) из H2-заголовков — показывается если заголовков 3 и больше
 
 ---
 
 ## Настройка админки (первый запуск)
 
-При первом открытии `/_emdash/admin` сайт автоматически перенаправит на мастер настройки. Создашь аккаунт через Passkey (Touch ID / Face ID).
+При первом открытии `/_emdash/admin` сайт перенаправит на мастер настройки. Создашь аккаунт через Passkey (Touch ID / Face ID).
 
 Добавь `.env` в папку сайта чтобы токены оставались валидными после перезапуска:
 
@@ -166,10 +240,8 @@ echo "EMDASH_AUTH_SECRET=<твой-секрет>" > .env
 
 ## CLI управление контентом
 
-После входа через `emdash login` можно управлять контентом из терминала:
-
 ```bash
-# Авторизация
+# Авторизация (device code через браузер)
 node_modules/.bin/emdash login --url http://localhost:4321
 
 # Просмотр контента
@@ -183,6 +255,17 @@ node_modules/.bin/emdash content unpublish pages cs2-weapons-guide
 # Поиск
 node_modules/.bin/emdash search "οδηγός"
 ```
+
+---
+
+## Запуск нескольких сайтов
+
+```bash
+cd sites
+./start-sites.sh
+```
+
+Скрипт убивает порты 4321/4322 и запускает каждый сайт на своём порту.
 
 ---
 

@@ -108,6 +108,43 @@ function parseBrend(filePath) {
   return { name: lines[0] ?? "", url: lines[1] ?? "" };
 }
 
+/**
+ * Parse game.txt → { name, subtitle, rtp, maxWin, volatility, playUrl, demoUrl }
+ *
+ * Format (key: value lines):
+ *   Game: Aviator
+ *   Subtitle: Fly High, Bet Smart, Cash Out at the Perfect Moment
+ *   RTP: 97%
+ *   MaxWin: 10,000×
+ *   Volatility: High
+ *   PlayUrl: https://...   (optional, falls back to brend url)
+ *   DemoUrl: https://...   (optional)
+ */
+function parseGame(filePath) {
+  if (!existsSync(filePath)) return null;
+  const raw = readFileSync(filePath, "utf-8").trim();
+  if (!raw) return null;
+
+  const get = (key) => {
+    const m = raw.match(new RegExp(`^${key}:\\s*(.+)$`, "im"));
+    return m ? m[1].trim() : "";
+  };
+
+  return {
+    name:        get("Game")        || get("Name"),
+    subtitle:    get("Subtitle"),
+    rtp:         get("RTP")         || "97%",
+    maxWin:      get("MaxWin")      || get("Max.?Win") || "10,000×",
+    volatility:  get("Volatility")  || "High",
+    playUrl:     get("PlayUrl")     || get("Play"),
+    demoUrl:     get("DemoUrl")     || get("Demo"),
+    playLabel:   get("PlayLabel")   || "Play Now",
+    demoLabel:   get("DemoLabel")   || "Try Demo Free",
+    accentColor: get("AccentColor") || get("Accent") || "#4f8ef7",
+    multiplier:  get("Multiplier")  || "1.00",
+  };
+}
+
 /** Find first existing file matching one of given names */
 function findAsset(dir, names) {
   for (const name of names) {
@@ -156,6 +193,10 @@ async function main() {
   const brend = parseBrend(join(textDir, "brend.txt"));
   console.log(`🏷  Brand: ${brend.name || "(none)"}`);
   if (brend.url) console.log(`🔗 Affiliate: ${brend.url}`);
+
+  // ── Game stats (optional game.txt) ────────────────────────────────────
+  const game = parseGame(join(textDir, "game.txt"));
+  if (game) console.log(`🎮 Game: ${game.name || "(unnamed)"} RTP:${game.rtp} MaxWin:${game.maxWin}`);
 
   // ── Homepage ─────────────────────────────────────────────────────────────
   const mainFile = join(textDir, "main.txt");
@@ -209,6 +250,8 @@ async function main() {
   const bannerPath  = findAsset(inputDir, ["banner.webp", "banner.jpg", "banner.png"]);
   const logoPath    = findAsset(inputDir, ["logo.webp",   "logo.jpg",   "logo.png"]);
   const faviconPath = findAsset(inputDir, ["favicon.svg", "favicon.png", "favicon.ico"]);
+  // Game Hero background (optional): game-bg.webp / game-bg.jpg / game-bg.png in site root
+  const gameBgPath  = findAsset(inputDir, ["game-bg.webp", "game-bg.jpg", "game-bg.png"]);
 
   // ── Build seed.json ───────────────────────────────────────────────────────
   console.log("\n🌱 Building seed.json...");
@@ -268,6 +311,28 @@ async function main() {
           { slug: "photo",        label: "Photo",       type: "image" },
         ],
       },
+      // ── Game Hero Block (editable from admin) ─────────────────────────────
+      {
+        slug: "game_hero",
+        label: "🎮 Game Hero Block",
+        labelSingular: "Game Hero",
+        supports: [],
+        fields: [
+          { slug: "enabled",    label: "Show Hero Block", type: "boolean" },
+          { slug: "game_name",  label: "Game Name",       type: "string" },
+          { slug: "subtitle",   label: "Subtitle",        type: "string" },
+          { slug: "multiplier", label: "Starting Multiplier (e.g. 1.00)", type: "string" },
+          { slug: "rtp",        label: "RTP",             type: "string" },
+          { slug: "max_win",    label: "Max Win",         type: "string" },
+          { slug: "volatility", label: "Volatility",      type: "string" },
+          { slug: "play_url",   label: "Play Now URL",    type: "string" },
+          { slug: "demo_url",   label: "Try Demo URL",    type: "string" },
+          { slug: "bg_image",   label: "Background Image",type: "image"  },
+          { slug: "play_label", label: "Play Button Text", type: "string" },
+          { slug: "demo_label", label: "Demo Button Text",  type: "string" },
+          { slug: "accent_color", label: "Accent Color (hex, e.g. #4f8ef7)", type: "string" },
+        ],
+      },
     ],
 
     menus: [
@@ -293,6 +358,39 @@ async function main() {
       ],
       service_pages: serviceEntries,
       authors: authorEntries,
+
+      // Game Hero Block — one entry "main", editable from admin
+      game_hero: [
+        {
+          id: "main",
+          slug: "main",
+          status: "published",
+          data: game ? {
+            enabled:       true,
+            game_name:     game.name       || siteName,
+            subtitle:      game.subtitle   || "",
+            multiplier:    game.multiplier || "1.00",
+            rtp:           game.rtp        || "97%",
+            max_win:       game.maxWin     || "10,000×",
+            volatility:    game.volatility || "High",
+            play_url:      game.playUrl    || brend.url || "",
+            demo_url:      game.demoUrl    || brend.url || "",
+            play_label:    game.playLabel  || "Play Now",
+            demo_label:    game.demoLabel  || "Try Demo Free",
+            accent_color:  game.accentColor || "#4f8ef7",
+            bg_image: gameBgPath
+              ? { $media: { file: gameBgPath, alt: `${siteName} background` } }
+              : null,
+          } : {
+            enabled: false,
+            game_name: siteName,
+            subtitle: "", rtp: "97%", max_win: "10,000×", volatility: "High",
+            play_url: brend.url || "", demo_url: brend.url || "",
+            play_label: "Play Now", demo_label: "Try Demo Free",
+            accent_color: "#4f8ef7", multiplier: "1.00", bg_image: null,
+          },
+        },
+      ],
     },
   };
 
@@ -328,6 +426,12 @@ async function main() {
     }
   }
 
+  // Copy game hero background if present
+  if (gameBgPath) {
+    copyFileSync(gameBgPath, join(publicDir, "game-bg" + extname(gameBgPath)));
+    console.log("🖼  Copied game-bg");
+  }
+
   // Copy promo slide images into public/slides/ (if present in input folder)
   const slidesDir = join(inputDir, "slides");
   if (existsSync(slidesDir)) {
@@ -352,7 +456,23 @@ async function main() {
   // Write brand config for template to read
   writeFileSync(
     join(outputDir, "src", "brand.json"),
-    JSON.stringify({ name: brend.name, url: brend.url, siteName }, null, 2)
+    JSON.stringify({
+      name: brend.name,
+      url: brend.url,
+      siteName,
+      // game stats for GameHero component (null when game.txt absent)
+      ...(game ? {
+        game: {
+          name:       game.name       || siteName,
+          subtitle:   game.subtitle,
+          rtp:        game.rtp,
+          maxWin:     game.maxWin,
+          volatility: game.volatility,
+          playUrl:    game.playUrl    || brend.url,
+          demoUrl:    game.demoUrl    || brend.url,
+        }
+      } : {}),
+    }, null, 2)
   );
 
   console.log(`

@@ -1,6 +1,7 @@
 ---
 import { getEmDashCollection, getSiteSettings } from "emdash";
 import Base from "../layouts/Base.astro";
+import GameHero from "../components/GameHero.astro";
 import brand from "../brand.json";
 
 const settings = await getSiteSettings();
@@ -32,6 +33,9 @@ const bodyHtml = rawHtml.replace(/<h1[^>]*>[\s\S]*?<\/h1>/i, "").trim();
       {siteDesc && <p class="hero__desc">{siteDesc}</p>}
     </div>
   </section>
+
+  <!-- GameHero — fetches enabled/disabled from CMS game_hero collection -->
+  <GameHero />
 
   <!-- CTA под hero — только если есть бренд -->
   {brand.name && brand.url && (
