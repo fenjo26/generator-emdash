@@ -432,18 +432,18 @@ async function main() {
     console.log("🖼  Copied game-bg");
   }
 
-  // Copy promo slide images into public/slides/ (if present in input folder)
-  const slidesDir = join(inputDir, "slides");
-  if (existsSync(slidesDir)) {
-    const slidesPublic = join(publicDir, "slides");
-    mkdirSync(slidesPublic, { recursive: true });
-    for (const f of readdirSync(slidesDir)) {
-      if (/\.(webp|jpg|jpeg|png)$/i.test(f)) {
-        copyFileSync(join(slidesDir, f), join(slidesPublic, f));
-        console.log(`🖼  Copied slide: ${f}`);
-      }
+  // Copy promo slide images from root: slide1.*, slide2.*, ... → public/slides/
+  const slidesPublic = join(publicDir, "slides");
+  let slideCount = 0;
+  for (const f of readdirSync(inputDir)) {
+    if (/^slide\d+\.(webp|jpg|jpeg|png)$/i.test(f)) {
+      mkdirSync(slidesPublic, { recursive: true });
+      copyFileSync(join(inputDir, f), join(slidesPublic, f));
+      console.log(`🖼  Copied slide: ${f}`);
+      slideCount++;
     }
   }
+  if (slideCount === 0) console.log("ℹ️  No slide images found (slide1.webp, slide2.webp …)");
 
   // Patch package.json name
   const pkgPath = join(outputDir, "package.json");
