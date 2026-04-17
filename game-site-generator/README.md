@@ -6,30 +6,6 @@
 
 ---
 
-## Быстрый старт
-
-```bash
-# 1. Подготовь папку с контентом (см. структуру ниже)
-
-# 2. Сгенерируй сайт
-node generate.js --input ./testseo/my-site.gr --output ./sites/my-site.gr
-
-# 3. Запусти
-cd sites/my-site.gr
-npm install
-npm run dev
-```
-
-Сайт: `http://localhost:4321`
-
-Для продакшена:
-```bash
-npm run build    # → dist/
-npm run preview  # превью билда
-```
-
----
-
 ## Структура входной папки
 
 ```
@@ -202,6 +178,65 @@ SVG-иконки в `public/icons/`, автоматически копируют
 - TOC из H2-заголовков (если ≥ 3 заголовков)
 - `/sitemap.xml` — автоматически из всех страниц
 - `/robots.txt` — с ссылкой на sitemap
+
+---
+
+## Деплой на VPS (Hestia CP)
+
+Генератор живёт прямо на сервере. Контент сайта лежит в подпапке `public_html/DOMAIN/`, а собранный сайт выходит в `public_html/`:
+
+```
+/home/work/web/topo-mole.gr/
+└── public_html/
+    ├── topo-mole.gr/        ← сюда кладёшь txt + картинки (входные данные)
+    │   ├── banner.webp
+    │   ├── slide1.webp
+    │   └── text/
+    │       ├── main.txt
+    │       ├── brend.txt
+    │       └── ...
+    ├── index.html           ← это генерируется автоматически (dist/)
+    ├── banner.webp
+    └── assets/
+```
+
+**Установка генератора на сервер (один раз):**
+
+```bash
+# Клонируй репо или закинь папку generator/ на сервер
+cd /home/work/generator
+npm install   # устанавливает только node зависимости генератора
+```
+
+**Сборка одного сайта:**
+
+```bash
+bash /home/work/generator/server-build.sh topo-mole.gr
+```
+
+Скрипт сам:
+1. Читает `/home/work/web/topo-mole.gr/public_html/topo-mole.gr/`
+2. Генерирует Astro-сайт во временную папку `/tmp/site-build/topo-mole.gr/`
+3. Запускает `npm install` + `npm run build`
+4. Кладёт содержимое `dist/` в `public_html/`, не трогая исходную подпапку
+
+**Сборка всех сайтов сразу:**
+
+```bash
+# Все домены в /home/work/web/ у которых есть text/main.txt
+bash /home/work/generator/server-build-all.sh
+
+# Конкретные домены
+bash /home/work/generator/server-build-all.sh topo-mole.gr avia-master.gr avia-fly2.gr
+```
+
+**Автоматическая пересборка по расписанию (cron):**
+
+```bash
+crontab -e
+# Пересобирать все сайты каждую ночь в 3:00
+0 3 * * * bash /home/work/generator/server-build-all.sh >> /home/work/build.log 2>&1
+```
 
 ---
 
