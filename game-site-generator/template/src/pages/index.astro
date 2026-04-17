@@ -17,12 +17,30 @@ const heroH1   = h1Match ? h1Match[1].replace(/<[^>]+>/g, "").trim() : siteName;
 const bodyHtml = rawHtml.replace(/<h1[^>]*>[\s\S]*?<\/h1>/i, "").trim();
 
 const hasBrand = !!brand.name && !!brand.url;
+
+// ── Table of Contents (same logic as [slug].astro) ──────────────────────────
+function slugifyHeading(text: string): string {
+  return text.toLowerCase()
+    .replace(/<[^>]+>/g, "")
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+interface TocItem { id: string; text: string; }
+const tocItems: TocItem[] = [];
+const bodyHtmlWithAnchors = bodyHtml.replace(
+  /<h2([^>]*)>([\s\S]*?)<\/h2>/gi,
+  (_match: string, attrs: string, inner: string) => {
+    const text = inner.replace(/<[^>]+>/g, "").trim();
+    const id   = slugifyHeading(text) || `section-${tocItems.length + 1}`;
+    tocItems.push({ id, text });
+    return `<h2${attrs} id="${id}">${inner}</h2>`;
+  }
+);
 ---
 
 <Base title={undefined} description={siteDesc}>
-
-  <!-- Game Hero block (only when game.txt is present) -->
-  <GameHero />
 
   <!-- Main hero with H1 -->
   <section class="hero">
@@ -47,6 +65,11 @@ const hasBrand = !!brand.name && !!brand.url;
       </div>
     </div>
   )}
+
+  <!-- Game Hero block (only when game.txt is present) -->
+  <div class="container">
+    <GameHero />
+  </div>
 
   <!-- Promo slides (only when brand set) -->
   {hasBrand && (
@@ -112,11 +135,28 @@ const hasBrand = !!brand.name && !!brand.url;
   )}
 
   <!-- SEO content from main.txt (H1 is already in hero above) -->
-  {bodyHtml && (
+  {bodyHtmlWithAnchors && (
     <section class="section">
       <div class="container">
         <div class="article-layout article-layout--full">
-          <div class="article-content" set:html={bodyHtml} />
+
+          {tocItems.length >= 3 && (
+            <nav class="toc">
+              <div class="toc__title">Περιεχόμενα</div>
+              <ol class="toc__list">
+                {tocItems.map((item, i) => (
+                  <li class="toc__item">
+                    <a href={`#${item.id}`}>
+                      <span class="toc__num">{i + 1}.</span>
+                      {item.text}
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          )}
+
+          <div class="article-content" set:html={bodyHtmlWithAnchors} />
         </div>
       </div>
     </section>

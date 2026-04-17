@@ -71,8 +71,8 @@ const structuredData = {
   "mainEntityOfPage": { "@type": "WebPage", "@id": pageUrl },
   "publisher": {
     "@type": "Organization",
-    "name": siteName,
-    "url": siteUrl,
+    "name": brand.name || siteName,
+    "url": brand.url || siteUrl,
     "logo": { "@type": "ImageObject", "url": `${origin}/logo.webp` },
   },
   ...(firstAuthor ? {
@@ -98,15 +98,17 @@ const breadcrumbData = {
   <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
   <script type="application/ld+json" set:html={JSON.stringify(breadcrumbData)} />
 
-  <!-- Game Hero (only when game.txt is present) -->
-  <GameHero />
-
   <div class="container" style="padding-top:1.5rem;">
     <nav class="breadcrumb">
       <a href="/">Αρχική</a>
       <span>›</span>
       <span>{pageH1}</span>
     </nav>
+  </div>
+
+  <!-- Game Hero block (only when game.txt is present) -->
+  <div class="container">
+    <GameHero />
   </div>
 
   <div class="container">

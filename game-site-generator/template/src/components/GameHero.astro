@@ -61,8 +61,8 @@ const bgSrc: string | null = hero.bg_url || null;
   <div class="ghero__plane" aria-hidden="true">✈️</div>
 
   <div class="ghero__content">
-    <h2 class="ghero__title">{gameName}</h2>
-    {subtitle && <p class="ghero__subtitle">{subtitle}</p>}
+    <div class="ghero__title">{gameName}</div>
+    {subtitle && <div class="ghero__subtitle">{subtitle}</div>}
 
     <div class="ghero__multiplier">
       <span class="ghero__mult-x">×</span>
@@ -126,6 +126,12 @@ const bgSrc: string | null = hero.bg_url || null;
     padding: 3.5rem 1.5rem 3rem;
     text-align: center;
     isolation: isolate;
+    /* Visual card: rounded corners + subtle glow border */
+    max-width: 1200px;
+    margin: 0 auto 2.5rem;
+    border-radius: 16px;
+    border: 1px solid rgba(79, 142, 247, 0.18);
+    box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 8px 48px rgba(0,0,0,.5);
   }
   .ghero__bg { position: absolute; inset: 0; z-index: 0; }
   .ghero__bg-img {
@@ -135,7 +141,10 @@ const bgSrc: string | null = hero.bg_url || null;
   }
   .ghero__overlay {
     position: absolute; inset: 0;
-    background: linear-gradient(to bottom, rgba(6,12,26,.72) 0%, rgba(6,12,26,.55) 50%, rgba(6,12,26,.80) 100%);
+    background: linear-gradient(to bottom,
+      rgba(4,9,20,.82) 0%,
+      rgba(4,9,20,.70) 40%,
+      rgba(4,9,20,.78) 100%);
   }
   .ghero__grid {
     position: absolute; inset: 0;
@@ -172,62 +181,96 @@ const bgSrc: string | null = hero.bg_url || null;
     100% { left: 99%; bottom: 84%; transform: rotate(-18deg) scale(.9); opacity: 0; }
   }
 
-  .ghero__content { position: relative; z-index: 3; max-width: 640px; margin: 0 auto; }
+  /* Glass pill wrapping all content — readable on any background */
+  .ghero__content {
+    position: relative; z-index: 3;
+    max-width: 600px; margin: 0 auto;
+    background: rgba(4, 9, 22, 0.62);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 20px;
+    padding: 2rem 2rem 1.75rem;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 4px 32px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.07);
+  }
+
   .ghero__title {
-    font-size: clamp(1.8rem, 5vw, 3rem); font-weight: 900;
+    font-size: clamp(1.6rem, 4.5vw, 2.6rem); font-weight: 900;
     letter-spacing: .04em; text-transform: uppercase; color: #fff;
-    text-shadow: 0 0 40px rgba(79,142,247,.6);
-    margin-bottom: .35rem; animation: fadeUp .6s ease both;
+    text-shadow: 0 2px 12px rgba(0,0,0,.8), 0 0 32px rgba(79,142,247,.4);
+    margin-bottom: .3rem; animation: fadeUp .6s ease both;
   }
   .ghero__subtitle {
-    font-size: clamp(.8rem, 2vw, 1rem); color: rgba(255,255,255,.7);
-    margin-bottom: 1.4rem; animation: fadeUp .6s ease .1s both;
+    font-size: clamp(.8rem, 1.8vw, .95rem); color: rgba(255,255,255,.82);
+    text-shadow: 0 1px 6px rgba(0,0,0,.9);
+    margin-bottom: 1.25rem; animation: fadeUp .6s ease .1s both;
   }
+
+  /* Multiplier gets its own dark pill */
   .ghero__multiplier {
     display: inline-flex; align-items: baseline; gap: .12rem;
-    margin-bottom: 1.6rem; animation: fadeUp .6s ease .2s both;
+    margin-bottom: 1.4rem; animation: fadeUp .6s ease .2s both;
+    background: rgba(0,0,0,.45);
+    border: 1px solid rgba(250,204,21,.25);
+    border-radius: 50px;
+    padding: .3rem 1.2rem .3rem 1rem;
   }
-  .ghero__mult-x, .ghero__mult-suffix { font-size: clamp(1.4rem,4vw,2rem); font-weight: 700; color: #facc15; }
+  .ghero__mult-x, .ghero__mult-suffix {
+    font-size: clamp(1.2rem,3.5vw,1.7rem); font-weight: 700; color: #facc15;
+    text-shadow: 0 0 16px rgba(250,204,21,.7);
+  }
   .ghero__mult-value {
-    font-size: clamp(2.5rem, 8vw, 5rem); font-weight: 900; color: #facc15;
-    text-shadow: 0 0 30px rgba(250,204,21,.5);
+    font-size: clamp(2.2rem, 7vw, 4.2rem); font-weight: 900; color: #facc15;
+    text-shadow: 0 0 24px rgba(250,204,21,.6);
     font-variant-numeric: tabular-nums; min-width: 3ch; display: inline-block; text-align: right;
   }
+
+  /* Stats cards — solid dark so they pop on any BG */
   .ghero__stats {
-    display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
-    margin-bottom: 2rem; animation: fadeUp .6s ease .3s both;
+    display: flex; gap: .75rem; justify-content: center; flex-wrap: wrap;
+    margin-bottom: 1.6rem; animation: fadeUp .6s ease .3s both;
   }
   .ghero__stat {
-    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
-    border-radius: 12px; padding: .8rem 1.5rem; min-width: 110px; backdrop-filter: blur(8px);
+    background: rgba(6, 12, 28, 0.82);
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 12px; padding: .7rem 1.25rem; min-width: 100px;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 2px 12px rgba(0,0,0,.4);
   }
-  .ghero__stat-label { font-size: .62rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.45); margin-bottom: .2rem; }
-  .ghero__stat-value { font-size: 1.3rem; font-weight: 800; color: var(--accent); }
+  .ghero__stat-label {
+    font-size: .6rem; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: rgba(255,255,255,.55); margin-bottom: .2rem;
+  }
+  .ghero__stat-value { font-size: 1.2rem; font-weight: 800; color: var(--accent); }
+
   .ghero__btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; animation: fadeUp .6s ease .4s both; }
   .ghero__btn {
     display: inline-flex; align-items: center; gap: .4rem;
-    padding: .85rem 2.2rem; border-radius: 50px;
-    font-size: 1rem; font-weight: 700; text-decoration: none;
+    padding: .8rem 2rem; border-radius: 50px;
+    font-size: .95rem; font-weight: 700; text-decoration: none;
     transition: transform 120ms ease, box-shadow 120ms ease;
   }
   .ghero__btn:hover { transform: translateY(-2px); }
   .ghero__btn--primary {
     background: linear-gradient(135deg, var(--accent), #06b6d4); color: #fff;
-    box-shadow: 0 4px 24px rgba(79,142,247,.4);
+    box-shadow: 0 4px 24px rgba(79,142,247,.45);
   }
-  .ghero__btn--primary:hover { box-shadow: 0 6px 32px rgba(79,142,247,.6); }
+  .ghero__btn--primary:hover { box-shadow: 0 6px 32px rgba(79,142,247,.65); }
   .ghero__btn--secondary {
-    background: transparent; color: #7dd3fc; border: 2px solid rgba(125,211,252,.45);
+    background: rgba(0,0,0,.45); color: #7dd3fc;
+    border: 2px solid rgba(125,211,252,.5);
+    backdrop-filter: blur(6px);
   }
-  .ghero__btn--secondary:hover { border-color: #7dd3fc; background: rgba(125,211,252,.07); }
+  .ghero__btn--secondary:hover { border-color: #7dd3fc; background: rgba(125,211,252,.12); }
 
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(16px); }
     to   { opacity: 1; transform: translateY(0); }
   }
-  @media (max-width: 480px) {
-    .ghero { padding: 2.5rem 1rem 2rem; }
-    .ghero__stat { min-width: 85px; padding: .6rem 1rem; }
-    .ghero__btn  { padding: .7rem 1.4rem; font-size: .9rem; }
+  @media (max-width: 520px) {
+    .ghero { padding: 2rem .75rem 1.75rem; }
+    .ghero__content { padding: 1.5rem 1.25rem 1.4rem; border-radius: 16px; }
+    .ghero__stat { min-width: 80px; padding: .6rem .9rem; }
+    .ghero__btn  { padding: .7rem 1.4rem; font-size: .875rem; }
   }
 </style>

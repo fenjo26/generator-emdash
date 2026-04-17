@@ -28,6 +28,11 @@ const navPages = (pagesData as any[])
 const hasBrand = !!brand.name && !!brand.url;
 const firstAuthor = (authors as any[])[0] ?? null;
 
+// Privacy policy page (for cookie banner link)
+const privacyPage = (servicePages as any[]).find((p: any) =>
+  /privacy|политика|aporrhtou/i.test(p.id)
+);
+
 function slugToLabel(slug: string): string {
   const GAME_PREFIX = /^(cs2?|bf[0-9]+|cod|gta[0-9]*|lol|wow|pubg|dota2?|apex|valorant|minecraft|fortnite|counter.?strike.?[0-9]*|battlefield.?[0-9]*)[-_]/i;
   const YEAR_SUFFIX = /[-_]?\d{4}[a-z]?$/i;
@@ -238,5 +243,51 @@ function slugToLabel(slug: string): string {
 
       </div>
     </footer>
+
+    <!-- ── Cookie Consent Banner ──────────────────────────────────── -->
+    <div class="cookie-banner" id="cookie-banner" aria-live="polite" aria-label="Ειδοποίηση cookies" hidden>
+      <div class="cookie-banner__inner">
+        <div class="cookie-banner__body">
+          <p class="cookie-banner__text">
+            Χρησιμοποιούμε cookies για την ανάλυση επισκεψιμότητας και τη βελτίωση της εμπειρίας σας.
+            {privacyPage
+              ? <span>Διαβάστε την <a href={`/${privacyPage.id}/`} class="cookie-banner__link">Πολιτική Απορρήτου</a>.</span>
+              : <span>Συνεχίζοντας αποδέχεστε τη χρήση τους.</span>
+            }
+          </p>
+        </div>
+        <div class="cookie-banner__actions">
+          <button class="cookie-banner__btn cookie-banner__btn--secondary" id="cookie-reject">
+            Μόνο απαραίτητα
+          </button>
+          <button class="cookie-banner__btn cookie-banner__btn--primary" id="cookie-accept">
+            Αποδέχομαι όλα
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const STORAGE_KEY = "cookie_consent";
+        const banner = document.getElementById("cookie-banner");
+        if (!banner) return;
+
+        // Show only if no choice made yet
+        if (!localStorage.getItem(STORAGE_KEY)) {
+          // Small delay so it slides in after page load
+          setTimeout(() => banner.removeAttribute("hidden"), 600);
+        }
+
+        function dismiss(value: string) {
+          localStorage.setItem(STORAGE_KEY, value);
+          banner.setAttribute("hidden", "");
+        }
+
+        document.getElementById("cookie-accept")?.addEventListener("click", () => dismiss("all"));
+        document.getElementById("cookie-reject")?.addEventListener("click", () => dismiss("necessary"));
+      })();
+    </script>
+
   </body>
 </html>

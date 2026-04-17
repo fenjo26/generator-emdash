@@ -70,14 +70,21 @@ const templateDir = join(__dirname, "template");
 
 /** Parse a .txt content file → { title, description, html } */
 function parseTxtFile(filePath) {
-  const raw = readFileSync(filePath, "utf-8");
+  // Normalize CRLF → LF so regexes work on Windows-encoded files
+  const raw = readFileSync(filePath, "utf-8").replace(/\r\n/g, "\n");
 
   const metaMatch = raw.match(/META-ТЕГИ:\s*([\s\S]*?)(?=\nтекст:|$)/i);
   const textMatch = raw.match(/текст:\s*([\s\S]*)/i);
 
   const metaBlock   = metaMatch ? metaMatch[1] : "";
   const html        = textMatch ? textMatch[1].trim() : "";
-  const title       = (metaBlock.match(/^Title:\s*(.+)$/im)       || [])[1]?.trim() ?? "";
+
+  // Title: prefer META-ТЕГИ Title, fall back to first <h1> in html
+  const title =
+    (metaBlock.match(/^Title:\s*(.+)$/im) || [])[1]?.trim()
+    || html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1]?.replace(/<[^>]+>/g, "").trim()
+    || "";
+
   const description = (metaBlock.match(/^Description:\s*(.+)$/im) || [])[1]?.trim() ?? "";
 
   return { title, description, html };
@@ -145,6 +152,36 @@ function findAsset(dir, names) {
   return null;
 }
 
+/**
+ * Find author photo by stem, with fuzzy fallback.
+ * Tries exact match first, then first-word match, then any image whose stem
+ * is a prefix of the author stem (e.g. "maria.webp" for "maria-konstantinou.txt").
+ */
+function findAuthorPhoto(dir, stem, images) {
+  const exts = [".webp", ".jpg", ".jpeg", ".png"];
+
+  // 1. Exact match
+  for (const ext of exts) {
+    if (images.includes(`${stem}${ext}`)) return join(dir, `${stem}${ext}`);
+  }
+
+  // 2. First segment before hyphen/underscore (e.g. "maria" from "maria-konstantinou")
+  const firstWord = stem.split(/[-_]/)[0];
+  if (firstWord !== stem) {
+    for (const ext of exts) {
+      if (images.includes(`${firstWord}${ext}`)) return join(dir, `${firstWord}${ext}`);
+    }
+  }
+
+  // 3. Any image whose stem is a prefix of the author stem
+  for (const imgFile of images) {
+    const imgStem = basename(imgFile, extname(imgFile));
+    if (stem.startsWith(imgStem)) return join(dir, imgFile);
+  }
+
+  return null;
+}
+
 /** All .txt files in a directory (non-recursive) */
 function txtFilesIn(dir) {
   if (!existsSync(dir)) return [];
@@ -208,10 +245,15 @@ async function main() {
 
   // ── Authors ──────────────────────────────────────────────────────────────
   const authors = [];
+  // Pre-collect all image files in authorDir for fuzzy matching
+  const authorImages = existsSync(authorDir)
+    ? readdirSync(authorDir).filter(f => /\.(webp|jpg|jpeg|png)$/i.test(f))
+    : [];
+
   for (const f of txtFilesIn(authorDir)) {
     const parsed = parseTxtFile(f);
     const stem   = basename(f, ".txt");
-    const photo  = findAsset(authorDir, [`${stem}.webp`, `${stem}.jpg`, `${stem}.png`]);
+    const photo  = findAuthorPhoto(authorDir, stem, authorImages);
     authors.push(makeEntry(stem, parsed, {
       // plain URL — no $media, no upload system needed
       photo: photo ? { src: `/authors/${basename(photo)}`, alt: parsed.title } : null,
