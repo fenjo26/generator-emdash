@@ -9,6 +9,7 @@
  * Activate: add game.txt to text/ folder before running generate.js
  */
 import { getEmDashCollection } from "emdash";
+import brand from "../brand.json";
 
 const { entries } = await getEmDashCollection("game_hero");
 const hero = entries[0]?.data as Record<string, unknown> | undefined;
@@ -16,20 +17,23 @@ const hero = entries[0]?.data as Record<string, unknown> | undefined;
 // If disabled or missing — render nothing
 if (!hero || !hero.enabled) return;
 
-const gameName   = (hero.game_name   as string) || "Game";
-const subtitle   = (hero.subtitle    as string) || "";
-const rtp        = (hero.rtp         as string) || "97%";
-const maxWin     = (hero.max_win     as string) || "10,000×";
-const volatility = (hero.volatility  as string) || "High";
-const playUrl    = (hero.play_url    as string) || "#";
-const demoUrl    = (hero.demo_url    as string) || "#";
-const playLabel  = (hero.play_label  as string) || "Play Now";
-const demoLabel  = (hero.demo_label  as string) || "Try Demo Free";
+const gameName   = (hero.game_name    as string) || "Game";
+const subtitle   = (hero.subtitle     as string) || "";
+const rtp        = (hero.rtp          as string) || "97%";
+const maxWin     = (hero.max_win      as string) || "10,000×";
+const volatility = (hero.volatility   as string) || "High";
+const playLabel  = (hero.play_label   as string) || "Play Now";
+const demoLabel  = (hero.demo_label   as string) || "Try Demo Free";
 const accent     = (hero.accent_color as string) || "#4f8ef7";
 
-// Background image (uploaded via admin)
-const bgImage = hero.bg_image as { src?: string; url?: string; alt?: string } | null | undefined;
-const bgSrc   = bgImage?.src ?? bgImage?.url ?? null;
+// Buttons: CMS value → brand affiliate link → nothing
+const affiliateUrl = brand.url || "";
+const playUrl = (hero.play_url as string) || affiliateUrl;
+const demoUrl = (hero.demo_url as string) || affiliateUrl;
+
+// Background: 1) uploaded image via admin  2) bg_url (plain path, e.g. /game-bg.webp)
+const bgImageObj = hero.bg_image as { src?: string; url?: string } | null | undefined;
+const bgSrc = bgImageObj?.src ?? bgImageObj?.url ?? (hero.bg_url as string) || null;
 ---
 
 <section class="ghero" style={`--accent:${accent};`}>
@@ -103,19 +107,21 @@ const bgSrc   = bgImage?.src ?? bgImage?.url ?? null;
       </div>
     </div>
 
-    <!-- CTA buttons -->
-    <div class="ghero__btns">
-      {playUrl && playUrl !== "#" && (
-        <a href={playUrl} target="_blank" rel="noopener sponsored" class="ghero__btn ghero__btn--primary">
-          🎮 {playLabel}
-        </a>
-      )}
-      {demoUrl && demoUrl !== "#" && (
-        <a href={demoUrl} target="_blank" rel="noopener sponsored" class="ghero__btn ghero__btn--secondary">
-          {demoLabel}
-        </a>
-      )}
-    </div>
+    <!-- CTA buttons — only shown when there's a real URL -->
+    {(playUrl || demoUrl) && (
+      <div class="ghero__btns">
+        {playUrl && (
+          <a href={playUrl} target="_blank" rel="noopener sponsored" class="ghero__btn ghero__btn--primary">
+            🎮 {playLabel}
+          </a>
+        )}
+        {demoUrl && (
+          <a href={demoUrl} target="_blank" rel="noopener sponsored" class="ghero__btn ghero__btn--secondary">
+            {demoLabel}
+          </a>
+        )}
+      </div>
+    )}
   </div>
 </section>
 

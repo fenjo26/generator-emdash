@@ -23,7 +23,11 @@ const {
 } = Astro.props;
 
 const pageTitle = title ? `${title} — ${siteName}` : siteName;
-const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
+
+// Canonical always with trailing slash: / stays /, /page → /page/
+const rawPath = Astro.url.pathname;
+const normalizedPath = rawPath === "/" ? "/" : rawPath.replace(/\/?$/, "/");
+const canonicalUrl = canonical ?? new URL(normalizedPath, Astro.site ?? Astro.url.origin).href;
 
 // Nav items из коллекции (skip "main")
 const { entries: pages } = await getEmDashCollection("pages");

@@ -62,7 +62,6 @@ my-site.gr/
 META-ТЕГИ:
 Title: CS2 Οδηγός Όπλων 2026 | CS2 Greece
 Description: Πλήρης οδηγός για όλα τα όπλα στο Counter-Strike 2
-Slug: cs2-weapons-guide
 
 текст:
 <h1>Οδηγός Όπλων CS2</h1>
@@ -71,8 +70,14 @@ Slug: cs2-weapons-guide
 
 - `Title` — title тег и мета-заголовок
 - `Description` — meta description
-- `Slug` — URL страницы (`/cs2-weapons-guide/`)
 - Всё после `текст:` — HTML-контент. `<h1>` автоматически поднимается в hero-секцию страницы.
+
+> **URL страницы определяется именем файла**, а не содержимым. Файл `cs2-weapons.txt` → URL `/cs2-weapons/`. Поле `Slug:` внутри файла игнорируется. Это гарантирует что автоматически сгенерированный контент никогда не создаст неожиданных URL.
+
+Зарезервированные имена (не создают страниц):
+- `main.txt` — контент главной страницы
+- `brend.txt` — партнёрский бренд
+- `game.txt` — настройки Game Hero блока
 
 ---
 
@@ -163,10 +168,18 @@ Multiplier: 1.00
 | Game Name | Название игры (большой заголовок) |
 | Subtitle | Подпись под названием |
 | RTP / Max Win / Volatility | Значения в карточках статистики |
-| Play Now URL / Try Demo URL | Ссылки на кнопках |
+| Play Now URL / Try Demo URL | Ссылки на кнопках (если пусто — берётся ссылка из `brend.txt`) |
 | Play Button Text / Demo Button Text | Текст кнопок на любом языке |
 | Accent Color | HEX-цвет акцента |
-| Background Image | Загрузи любую картинку через медиабиблиотеку |
+| Background Image URL | Путь к картинке в `public/`, например `/game-bg.webp` |
+| Background Image | Загрузи картинку прямо через медиабиблиотеку AdminUI |
+
+Кнопки Play / Demo никогда не покажут 404: если URL не задан явно, используется ссылка из `brend.txt`.
+
+**Фон блока** — три способа (в порядке приоритета):
+1. Картинка загружена через Admin → поле `Background Image`
+2. Путь прописан вручную → поле `Background Image URL`
+3. Файл `game-bg.webp` в корне папки сайта → заполняется автоматически при генерации
 
 ---
 
@@ -206,6 +219,14 @@ template/
     └── styles/
         └── theme.css       # тёмная игровая тема
 ```
+
+---
+
+## URL и canonical
+
+Все URL генерируются с trailing slash: `cs2-weapons.txt` → `/cs2-weapons/`.
+
+Canonical тег всегда нормализован: даже если браузер зайдёт на `/cs2-weapons` без слэша, canonical в `<head>` будет `/cs2-weapons/`. Это исключает дублирование страниц в индексе Google.
 
 ---
 

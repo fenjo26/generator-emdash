@@ -162,15 +162,17 @@ function txtFilesIn(dir) {
     .map(f => join(dir, f));
 }
 
-/** Build a seed content entry from a parsed txt file */
+/** Build a seed content entry from a parsed txt file.
+ *  slug always comes from the filename (id), never from inside the file.
+ */
 function makeEntry(id, parsed, extra = {}) {
   return {
     id,
-    slug: parsed.slug || id,
+    slug: id,
     status: "published",
     data: {
-      title:       parsed.title,
-      seo_desc:    parsed.description,
+      title:        parsed.title,
+      seo_desc:     parsed.description,
       html_content: parsed.html,
       ...extra,
     },
@@ -208,14 +210,14 @@ async function main() {
   const siteName   = mainParsed.title || basename(inputDir);
   console.log(`📋 Site: "${siteName}"`);
 
-  // ── Article pages (root text/ dir, skip main.txt and brend.txt and seo/) ─
+  // ── Article pages (root text/ dir, skip reserved files) ─────────────────
+  const SKIP_TXT = new Set(["main.txt", "brend.txt", "game.txt"]);
   const articleEntries = [];
   for (const f of txtFilesIn(textDir)) {
-    const name = basename(f);
-    if (name === "main.txt" || name === "brend.txt") continue;
+    if (SKIP_TXT.has(basename(f))) continue;
     const parsed = parseTxtFile(f);
     if (!parsed.html && !parsed.title) continue;
-    const id = parsed.slug || basename(f, ".txt");
+    const id = basename(f, ".txt");           // always use filename, never Slug: field
     articleEntries.push(makeEntry(id, parsed));
   }
 
@@ -223,9 +225,8 @@ async function main() {
   const authorEntries = [];
   for (const f of txtFilesIn(authorDir)) {
     const parsed = parseTxtFile(f);
-    const id = parsed.slug || basename(f, ".txt");
-    // find matching photo
     const stem = basename(f, ".txt");
+    const id   = stem;                        // filename wins
     const photo = findAsset(authorDir, [`${stem}.webp`, `${stem}.jpg`, `${stem}.png`]);
     authorEntries.push({
       ...makeEntry(id, parsed),
@@ -240,7 +241,7 @@ async function main() {
   const serviceEntries = [];
   for (const f of txtFilesIn(serviceDir)) {
     const parsed = parseTxtFile(f);
-    const id = parsed.slug || basename(f, ".txt");
+    const id = basename(f, ".txt");           // filename wins
     serviceEntries.push(makeEntry(id, parsed));
   }
 
@@ -331,6 +332,8 @@ async function main() {
           { slug: "play_label", label: "Play Button Text", type: "string" },
           { slug: "demo_label", label: "Demo Button Text",  type: "string" },
           { slug: "accent_color", label: "Accent Color (hex, e.g. #4f8ef7)", type: "string" },
+          { slug: "bg_url",      label: "Background Image URL (e.g. /game-bg.webp)", type: "string" },
+          { slug: "bg_image",    label: "Background Image (upload)",  type: "image"  },
         ],
       },
     ],
@@ -378,16 +381,17 @@ async function main() {
             play_label:    game.playLabel  || "Play Now",
             demo_label:    game.demoLabel  || "Try Demo Free",
             accent_color:  game.accentColor || "#4f8ef7",
-            bg_image: gameBgPath
-              ? { $media: { file: gameBgPath, alt: `${siteName} background` } }
-              : null,
+            // bg_url — plain public path, always works; bg_image for admin upload
+            bg_url:   gameBgPath ? "/game-bg" + extname(gameBgPath) : "",
+            bg_image: null,
           } : {
             enabled: false,
             game_name: siteName,
             subtitle: "", rtp: "97%", max_win: "10,000×", volatility: "High",
             play_url: brend.url || "", demo_url: brend.url || "",
             play_label: "Play Now", demo_label: "Try Demo Free",
-            accent_color: "#4f8ef7", multiplier: "1.00", bg_image: null,
+            accent_color: "#4f8ef7", multiplier: "1.00",
+            bg_url: "", bg_image: null,
           },
         },
       ],
