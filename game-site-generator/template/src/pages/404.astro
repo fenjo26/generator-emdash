@@ -1,12 +1,77 @@
 ---
 import Base from "../layouts/Base.astro";
+import brand from "../brand.json";
+
+const siteName = brand.siteName || "GameGuide";
 ---
-<Base title="Страница не найдена">
-  <div style="text-align:center; padding: 6rem 1rem;">
-    <h1 style="font-size:5rem; font-weight:900; color:var(--color-accent);">404</h1>
-    <p style="font-size:var(--font-size-xl); color:var(--color-text-secondary); margin: 1rem 0 2rem;">
-      Страница не найдена
-    </p>
-    <a href="/" class="btn btn--primary">← На главную</a>
+
+<Base title="404 — Σελίδα δεν βρέθηκε" description="Η σελίδα που ψάχνετε δεν υπάρχει." noIndex={true}>
+  <div class="not-found">
+    <div class="not-found__inner">
+      <div class="not-found__code" aria-hidden="true">404</div>
+      <h1 class="not-found__title">Σελίδα δεν βρέθηκε</h1>
+      <p class="not-found__desc">
+        Η σελίδα που ψάχνετε δεν υπάρχει ή έχει μετακινηθεί.
+      </p>
+      <a href="/" class="not-found__btn">
+        ← Επιστροφή στην Αρχική
+      </a>
+    </div>
   </div>
 </Base>
+
+<style>
+  .not-found {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    padding: 3rem 1.5rem;
+    text-align: center;
+  }
+  .not-found__inner {
+    max-width: 480px;
+  }
+  .not-found__code {
+    font-size: clamp(5rem, 18vw, 9rem);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: transparent;
+    background: linear-gradient(135deg, var(--color-accent) 0%, #06b6d4 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+    user-select: none;
+  }
+  .not-found__title {
+    font-size: clamp(1.4rem, 4vw, 2rem);
+    font-weight: 800;
+    color: var(--color-text);
+    margin-bottom: 1rem;
+  }
+  .not-found__desc {
+    font-size: 1rem;
+    color: var(--color-text-2);
+    line-height: 1.6;
+    margin-bottom: 2rem;
+  }
+  .not-found__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.8rem 2rem;
+    background: var(--color-accent);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.95rem;
+    border-radius: 50px;
+    text-decoration: none;
+    transition: opacity 150ms ease, transform 150ms ease;
+    box-shadow: 0 4px 24px rgba(79, 142, 247, 0.35);
+  }
+  .not-found__btn:hover {
+    opacity: 0.88;
+    transform: translateY(-2px);
+  }
+</style>

@@ -58,7 +58,7 @@ function slugToLabel(slug: string): string {
 
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
-    <meta name="robots" content={noIndex ? "noindex,nofollow" : "index,follow"} />
+    <meta name="robots" content={noIndex ? "noindex,nofollow" : "noarchive"} />
     {firstAuthor && <meta name="author" content={firstAuthor.data.title} />}
     <link rel="canonical" href={canonicalUrl} />
 

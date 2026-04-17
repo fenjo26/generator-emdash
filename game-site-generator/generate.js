@@ -348,6 +348,22 @@ async function main() {
     }
   }
 
+  // ── Nginx 404 snippet ─────────────────────────────────────────────────────
+  writeFileSync(
+    join(outputDir, "nginx-404.conf"),
+    [
+      `# Hestia CP → Web → ${basename(inputDir)} → Edit → Nginx Config`,
+      `# Paste this block inside the server {} section:`,
+      ``,
+      `error_page 404 /404.html;`,
+      `location = /404.html {`,
+      `    root /home/work/web/${basename(inputDir)}/public_html;`,
+      `    internal;`,
+      `}`,
+      ``,
+    ].join("\n")
+  );
+
   // ── robots.txt ────────────────────────────────────────────────────────────
   const domain = basename(inputDir);
   writeFileSync(join(publicDir, "robots.txt"), [
@@ -385,6 +401,10 @@ Next steps:
   npm run preview  ← preview the build locally
 
 Site:    http://localhost:4321
+
+404 setup:
+  Apache  → .htaccess already in dist/ (auto-applied by Hestia)
+  Nginx   → see nginx-404.conf in ${outputDir}
 `);
 }
 

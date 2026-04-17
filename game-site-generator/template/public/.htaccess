@@ -1,0 +1,9 @@
+# Custom error pages
+ErrorDocument 404 /404.html
+
+# Trailing slash redirects (Astro trailingSlash: "always")
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} \!-f
+RewriteCond %{REQUEST_FILENAME} \!-d
+RewriteCond %{REQUEST_URI} \!(.*)/$
+RewriteRule ^(.*)$ /$1/ [L,R=301]
