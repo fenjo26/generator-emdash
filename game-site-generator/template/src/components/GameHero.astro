@@ -1,55 +1,42 @@
 ---
 /**
- * GameHero — animated crash-game hero block
- *
- * All settings are fetched from the "game_hero" CMS collection
- * and can be edited live from the EmDash admin panel:
- *   http://localhost:4321/_emdash/admin → Game Hero Block
- *
- * Activate: add game.txt to text/ folder before running generate.js
+ * GameHero — animated crash-game hero block.
+ * All settings come from src/data/game_hero.json (written by generate.js).
+ * Enable/disable by setting "enabled" in game.txt before running the generator.
  */
-import { getEmDashCollection } from "emdash";
+import gameHeroData from "../data/game_hero.json";
 import brand from "../brand.json";
 
-const { entries } = await getEmDashCollection("game_hero");
-const hero = entries[0]?.data as Record<string, unknown> | undefined;
+const hero = gameHeroData as any;
+if (!hero?.enabled) return;
 
-// If disabled or missing — render nothing
-if (!hero || !hero.enabled) return;
+const gameName   = hero.game_name    || brand.siteName || "Game";
+const subtitle   = hero.subtitle     || "";
+const rtp        = hero.rtp          || "97%";
+const maxWin     = hero.max_win      || "10,000×";
+const volatility = hero.volatility   || "High";
+const playLabel  = hero.play_label   || "Play Now";
+const demoLabel  = hero.demo_label   || "Try Demo Free";
+const accent     = hero.accent_color || "#4f8ef7";
 
-const gameName   = (hero.game_name    as string) || "Game";
-const subtitle   = (hero.subtitle     as string) || "";
-const rtp        = (hero.rtp          as string) || "97%";
-const maxWin     = (hero.max_win      as string) || "10,000×";
-const volatility = (hero.volatility   as string) || "High";
-const playLabel  = (hero.play_label   as string) || "Play Now";
-const demoLabel  = (hero.demo_label   as string) || "Try Demo Free";
-const accent     = (hero.accent_color as string) || "#4f8ef7";
-
-// Buttons: CMS value → brand affiliate link → nothing
+// Buttons: CMS → brand affiliate link → hidden
 const affiliateUrl = brand.url || "";
-const playUrl = (hero.play_url as string) || affiliateUrl;
-const demoUrl = (hero.demo_url as string) || affiliateUrl;
+const playUrl = hero.play_url || affiliateUrl;
+const demoUrl = hero.demo_url || affiliateUrl;
 
-// Background: 1) uploaded image via admin  2) bg_url (plain path, e.g. /game-bg.webp)
-const bgImageObj = hero.bg_image as { src?: string; url?: string } | null | undefined;
-const bgSrc = bgImageObj?.src ?? bgImageObj?.url ?? (hero.bg_url as string) || null;
+// Background: uploaded image or plain URL
+const bgSrc: string | null = hero.bg_url || null;
 ---
 
 <section class="ghero" style={`--accent:${accent};`}>
-  <!-- Background: custom image or animated grid -->
   <div class="ghero__bg">
-    {bgSrc
-      ? <img src={bgSrc} alt={bgImage?.alt || ""} class="ghero__bg-img" />
-      : null
-    }
+    {bgSrc && <img src={bgSrc} alt="" class="ghero__bg-img" />}
     <div class="ghero__grid"></div>
     <div class="ghero__glow ghero__glow--left"></div>
     <div class="ghero__glow ghero__glow--right"></div>
     <div class="ghero__overlay"></div>
   </div>
 
-  <!-- Multiplier curve (SVG, drawn on load) -->
   <svg class="ghero__curve" viewBox="0 0 900 260" preserveAspectRatio="none" aria-hidden="true">
     <defs>
       <linearGradient id="curveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -64,34 +51,25 @@ const bgSrc = bgImageObj?.src ?? bgImageObj?.url ?? (hero.bg_url as string) || n
     </defs>
     <path class="ghero__curve-path"
       d="M 0 240 Q 200 230 400 160 T 900 20"
-      fill="none"
-      stroke="url(#curveGrad)"
-      stroke-width="3"
-      filter="url(#ghero-glow)"
+      fill="none" stroke="url(#curveGrad)" stroke-width="3" filter="url(#ghero-glow)"
     />
-    <path class="ghero__curve-fill"
-      d="M 0 240 Q 200 230 400 160 T 900 20 L 900 260 L 0 260 Z"
-      fill="url(#curveGrad)"
-      opacity="0.07"
+    <path d="M 0 240 Q 200 230 400 160 T 900 20 L 900 260 L 0 260 Z"
+      fill="url(#curveGrad)" opacity="0.07"
     />
   </svg>
 
-  <!-- Flying plane -->
   <div class="ghero__plane" aria-hidden="true">✈️</div>
 
-  <!-- Main content -->
   <div class="ghero__content">
     <h2 class="ghero__title">{gameName}</h2>
     {subtitle && <p class="ghero__subtitle">{subtitle}</p>}
 
-    <!-- Animated multiplier counter -->
     <div class="ghero__multiplier">
       <span class="ghero__mult-x">×</span>
       <span class="ghero__mult-value" id="ghero-mult">1.00</span>
       <span class="ghero__mult-suffix">x</span>
     </div>
 
-    <!-- Stats row -->
     <div class="ghero__stats">
       <div class="ghero__stat">
         <div class="ghero__stat-label">RTP</div>
@@ -107,7 +85,6 @@ const bgSrc = bgImageObj?.src ?? bgImageObj?.url ?? (hero.bg_url as string) || n
       </div>
     </div>
 
-    <!-- CTA buttons — only shown when there's a real URL -->
     {(playUrl || demoUrl) && (
       <div class="ghero__btns">
         {playUrl && (
@@ -126,15 +103,13 @@ const bgSrc = bgImageObj?.src ?? bgImageObj?.url ?? (hero.bg_url as string) || n
 </section>
 
 <script>
-  // Multiplier counter: 1.00 → random 2x–9x over 3 seconds
   (function () {
     const el = document.getElementById("ghero-mult");
     if (!el) return;
     const target = +(Math.random() * 7 + 2).toFixed(2);
-    const dur = 3000;
     const t0 = performance.now();
     function tick(now: number) {
-      const p = Math.min((now - t0) / dur, 1);
+      const p = Math.min((now - t0) / 3000, 1);
       el.textContent = (1 + (target - 1) * p * p).toFixed(2);
       if (p < 1) requestAnimationFrame(tick);
     }
@@ -144,7 +119,7 @@ const bgSrc = bgImageObj?.src ?? bgImageObj?.url ?? (hero.bg_url as string) || n
 
 <style>
   .ghero {
-    --accent: #4f8ef7;         /* overridden by inline style from CMS */
+    --accent: #4f8ef7;
     position: relative;
     overflow: hidden;
     background: linear-gradient(135deg, #060c1a 0%, #0a1628 50%, #040d1f 100%);
@@ -152,28 +127,16 @@ const bgSrc = bgImageObj?.src ?? bgImageObj?.url ?? (hero.bg_url as string) || n
     text-align: center;
     isolation: isolate;
   }
-
-  /* ── Background ── */
   .ghero__bg { position: absolute; inset: 0; z-index: 0; }
-
   .ghero__bg-img {
     position: absolute; inset: 0;
     width: 100%; height: 100%;
     object-fit: cover;
-    object-position: center;
   }
-
-  /* Dark overlay — always shown so text stays readable over photo */
   .ghero__overlay {
     position: absolute; inset: 0;
-    background: linear-gradient(
-      to bottom,
-      rgba(6,12,26,.72) 0%,
-      rgba(6,12,26,.55) 50%,
-      rgba(6,12,26,.80) 100%
-    );
+    background: linear-gradient(to bottom, rgba(6,12,26,.72) 0%, rgba(6,12,26,.55) 50%, rgba(6,12,26,.80) 100%);
   }
-
   .ghero__grid {
     position: absolute; inset: 0;
     background-image:
@@ -181,169 +144,87 @@ const bgSrc = bgImageObj?.src ?? bgImageObj?.url ?? (hero.bg_url as string) || n
       linear-gradient(90deg, rgba(79,142,247,.05) 1px, transparent 1px);
     background-size: 40px 40px;
   }
-
   .ghero__glow {
-    position: absolute;
-    width: 480px; height: 480px;
-    border-radius: 50%;
-    filter: blur(110px);
-    opacity: .2;
+    position: absolute; width: 480px; height: 480px;
+    border-radius: 50%; filter: blur(110px); opacity: .2;
   }
   .ghero__glow--left  { left: -140px; bottom: -140px; background: var(--accent); }
   .ghero__glow--right { right: -90px; top: -90px;     background: #065f46; }
 
-  /* ── SVG Curve ── */
   .ghero__curve {
-    position: absolute; inset: 0;
-    width: 100%; height: 100%;
+    position: absolute; inset: 0; width: 100%; height: 100%;
     z-index: 1; pointer-events: none;
   }
   .ghero__curve-path {
-    stroke-dasharray: 1200;
-    stroke-dashoffset: 1200;
+    stroke-dasharray: 1200; stroke-dashoffset: 1200;
     animation: drawCurve 2.5s ease-out .3s forwards;
   }
   @keyframes drawCurve { to { stroke-dashoffset: 0; } }
 
-  /* ── Plane ── */
   .ghero__plane {
-    position: absolute;
-    font-size: 2.2rem;
-    z-index: 2;
-    filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent) 80%, transparent));
+    position: absolute; font-size: 2.2rem; z-index: 2;
+    filter: drop-shadow(0 0 12px rgba(79,142,247,.8));
     animation: flyPlane 4s ease-in-out infinite;
   }
   @keyframes flyPlane {
     0%   { left:  0%; bottom:  8%; transform: rotate(-15deg) scale(.9); opacity: 1; }
-    25%  { left: 25%; bottom: 28%; transform: rotate(-25deg) scale(1);  }
-    55%  { left: 55%; bottom: 50%; transform: rotate(-28deg) scale(1.05); }
-    80%  { left: 80%; bottom: 70%; transform: rotate(-22deg) scale(1);  }
+    50%  { left: 50%; bottom: 48%; transform: rotate(-28deg) scale(1.05); }
     100% { left: 99%; bottom: 84%; transform: rotate(-18deg) scale(.9); opacity: 0; }
   }
 
-  /* ── Content ── */
-  .ghero__content {
-    position: relative; z-index: 3;
-    max-width: 640px; margin: 0 auto;
-  }
-
+  .ghero__content { position: relative; z-index: 3; max-width: 640px; margin: 0 auto; }
   .ghero__title {
-    font-size: clamp(1.8rem, 5vw, 3rem);
-    font-weight: 900;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    color: #fff;
-    text-shadow: 0 0 40px color-mix(in srgb, var(--accent) 70%, transparent);
-    margin-bottom: .35rem;
-    animation: fadeUp .6s ease both;
+    font-size: clamp(1.8rem, 5vw, 3rem); font-weight: 900;
+    letter-spacing: .04em; text-transform: uppercase; color: #fff;
+    text-shadow: 0 0 40px rgba(79,142,247,.6);
+    margin-bottom: .35rem; animation: fadeUp .6s ease both;
   }
-
   .ghero__subtitle {
-    font-size: clamp(.8rem, 2vw, 1rem);
-    color: rgba(255,255,255,.7);
-    margin-bottom: 1.4rem;
-    animation: fadeUp .6s ease .1s both;
+    font-size: clamp(.8rem, 2vw, 1rem); color: rgba(255,255,255,.7);
+    margin-bottom: 1.4rem; animation: fadeUp .6s ease .1s both;
   }
-
-  /* Multiplier */
   .ghero__multiplier {
-    display: inline-flex;
-    align-items: baseline;
-    gap: .12rem;
-    margin-bottom: 1.6rem;
-    animation: fadeUp .6s ease .2s both;
+    display: inline-flex; align-items: baseline; gap: .12rem;
+    margin-bottom: 1.6rem; animation: fadeUp .6s ease .2s both;
   }
-  .ghero__mult-x, .ghero__mult-suffix {
-    font-size: clamp(1.4rem, 4vw, 2rem);
-    font-weight: 700;
-    color: #facc15;
-  }
+  .ghero__mult-x, .ghero__mult-suffix { font-size: clamp(1.4rem,4vw,2rem); font-weight: 700; color: #facc15; }
   .ghero__mult-value {
-    font-size: clamp(2.5rem, 8vw, 5rem);
-    font-weight: 900;
-    color: #facc15;
+    font-size: clamp(2.5rem, 8vw, 5rem); font-weight: 900; color: #facc15;
     text-shadow: 0 0 30px rgba(250,204,21,.5);
-    font-variant-numeric: tabular-nums;
-    min-width: 3ch;
-    display: inline-block;
-    text-align: right;
+    font-variant-numeric: tabular-nums; min-width: 3ch; display: inline-block; text-align: right;
   }
-
-  /* Stats */
   .ghero__stats {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    flex-wrap: wrap;
-    margin-bottom: 2rem;
-    animation: fadeUp .6s ease .3s both;
+    display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+    margin-bottom: 2rem; animation: fadeUp .6s ease .3s both;
   }
   .ghero__stat {
-    background: rgba(255,255,255,.07);
-    border: 1px solid rgba(255,255,255,.12);
-    border-radius: 12px;
-    padding: .8rem 1.5rem;
-    min-width: 110px;
-    backdrop-filter: blur(8px);
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 12px; padding: .8rem 1.5rem; min-width: 110px; backdrop-filter: blur(8px);
   }
-  .ghero__stat-label {
-    font-size: .62rem;
-    font-weight: 600;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,.45);
-    margin-bottom: .2rem;
-  }
-  .ghero__stat-value {
-    font-size: 1.3rem;
-    font-weight: 800;
-    color: var(--accent);
-  }
-
-  /* CTA */
-  .ghero__btns {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    flex-wrap: wrap;
-    animation: fadeUp .6s ease .4s both;
-  }
+  .ghero__stat-label { font-size: .62rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.45); margin-bottom: .2rem; }
+  .ghero__stat-value { font-size: 1.3rem; font-weight: 800; color: var(--accent); }
+  .ghero__btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; animation: fadeUp .6s ease .4s both; }
   .ghero__btn {
-    display: inline-flex;
-    align-items: center;
-    gap: .4rem;
-    padding: .85rem 2.2rem;
-    border-radius: 50px;
-    font-size: 1rem;
-    font-weight: 700;
-    text-decoration: none;
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .85rem 2.2rem; border-radius: 50px;
+    font-size: 1rem; font-weight: 700; text-decoration: none;
     transition: transform 120ms ease, box-shadow 120ms ease;
   }
   .ghero__btn:hover { transform: translateY(-2px); }
-
   .ghero__btn--primary {
-    background: linear-gradient(135deg, var(--accent), #06b6d4);
-    color: #fff;
-    box-shadow: 0 4px 24px color-mix(in srgb, var(--accent) 50%, transparent);
+    background: linear-gradient(135deg, var(--accent), #06b6d4); color: #fff;
+    box-shadow: 0 4px 24px rgba(79,142,247,.4);
   }
-  .ghero__btn--primary:hover {
-    box-shadow: 0 6px 32px color-mix(in srgb, var(--accent) 70%, transparent);
-  }
+  .ghero__btn--primary:hover { box-shadow: 0 6px 32px rgba(79,142,247,.6); }
   .ghero__btn--secondary {
-    background: transparent;
-    color: #7dd3fc;
-    border: 2px solid rgba(125,211,252,.45);
+    background: transparent; color: #7dd3fc; border: 2px solid rgba(125,211,252,.45);
   }
-  .ghero__btn--secondary:hover {
-    border-color: #7dd3fc;
-    background: rgba(125,211,252,.07);
-  }
+  .ghero__btn--secondary:hover { border-color: #7dd3fc; background: rgba(125,211,252,.07); }
 
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(16px); }
     to   { opacity: 1; transform: translateY(0); }
   }
-
   @media (max-width: 480px) {
     .ghero { padding: 2.5rem 1rem 2rem; }
     .ghero__stat { min-width: 85px; padding: .6rem 1rem; }

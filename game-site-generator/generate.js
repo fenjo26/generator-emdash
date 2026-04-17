@@ -1,40 +1,35 @@
 #!/usr/bin/env node
 /**
- * EmDash Game Site Generator
+ * Game Site Generator
  *
- * Reads a site folder with this structure:
+ * Reads a site folder → produces a ready-to-build static Astro site.
+ * No CMS runtime. No database. Just JSON data files + Astro.
+ *
+ * Input folder structure:
  *
  *   site-folder/
  *   ├── banner.webp / banner.jpg / banner.png
  *   ├── logo.webp   / logo.jpg   / logo.png
  *   ├── favicon.svg / favicon.png / favicon.ico
+ *   ├── game-bg.webp              (optional, Game Hero background)
+ *   ├── slide1.webp, slide2.webp  (optional, promo banners)
  *   └── text/
- *       ├── brend.txt          → brand name + affiliate link
- *       ├── main.txt           → homepage (slug: main)
- *       ├── [article].txt      → article pages
+ *       ├── brend.txt     → affiliate brand (optional)
+ *       ├── game.txt      → Game Hero settings (optional)
+ *       ├── main.txt      → homepage content (required)
+ *       ├── [page].txt    → article pages
  *       ├── authors/
- *       │   ├── [name].txt     → author bio page
- *       │   └── [name].webp    → author photo
- *       ├── service/
- *       │   └── [name].txt     → service pages (about-us, contacts, etc.)
- *       └── seo/               → SKIPPED (keyword research only)
- *
- * Each .txt format:
- *   META-ТЕГИ:
- *   Title: ...
- *   Description: ...
- *   Slug: page-slug
- *
- *   текст:
- *   <html content>
+ *       │   ├── [name].txt
+ *       │   └── [name].webp
+ *       └── service/
+ *           └── [name].txt
  *
  * Usage:
  *   node generate.js --input ./testseo/battlefild6.gr --output ./sites/battlefild6.gr
- *   node generate.js --input ./testseo/conter-strike2.gr --output ./sites/conter-strike2.gr
  */
 
 import {
-  readFileSync, writeFileSync, copyFileSync,
+  readFileSync, writeFileSync, copyFileSync, unlinkSync,
   mkdirSync, existsSync, readdirSync, statSync,
 } from "node:fs";
 import { resolve, join, dirname, basename, extname } from "node:path";
@@ -56,7 +51,7 @@ const { values: args } = parseArgs({
 
 if (args.help || !args.input) {
   console.log(`
-EmDash Game Site Generator
+Game Site Generator — static Astro sites from txt content folders
 
 Usage:
   node generate.js --input <site-folder> --output <output-dir>
@@ -67,27 +62,25 @@ Example:
   process.exit(args.help ? 0 : 1);
 }
 
-const inputDir  = resolve(args.input);
-const outputDir = resolve(args.output ?? "./output");
+const inputDir    = resolve(args.input);
+const outputDir   = resolve(args.output ?? "./output");
 const templateDir = join(__dirname, "template");
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Parsers ─────────────────────────────────────────────────────────────────
 
-/** Parse a .txt content file → { title, description, slug, html } */
+/** Parse a .txt content file → { title, description, html } */
 function parseTxtFile(filePath) {
   const raw = readFileSync(filePath, "utf-8");
 
   const metaMatch = raw.match(/META-ТЕГИ:\s*([\s\S]*?)(?=\nтекст:|$)/i);
   const textMatch = raw.match(/текст:\s*([\s\S]*)/i);
 
-  const metaBlock = metaMatch ? metaMatch[1] : "";
-  const html      = textMatch ? textMatch[1].trim() : "";
-
+  const metaBlock   = metaMatch ? metaMatch[1] : "";
+  const html        = textMatch ? textMatch[1].trim() : "";
   const title       = (metaBlock.match(/^Title:\s*(.+)$/im)       || [])[1]?.trim() ?? "";
   const description = (metaBlock.match(/^Description:\s*(.+)$/im) || [])[1]?.trim() ?? "";
-  const slug        = (metaBlock.match(/^Slug:\s*(.+)$/im)        || [])[1]?.trim() ?? "";
 
-  return { title, description, slug, html };
+  return { title, description, html };
 }
 
 /** Parse brend.txt → { name, url } */
@@ -97,28 +90,27 @@ function parseBrend(filePath) {
   if (!raw) return { name: "", url: "" };
 
   const lines = raw.split("\n").map(l => l.trim()).filter(Boolean);
-
-  // Format 1: "Name: xxx / Link: xxx"
   if (lines[0]?.startsWith("Name:")) {
     const name = (lines.find(l => l.startsWith("Name:")) || "").replace("Name:", "").trim();
     const url  = (lines.find(l => l.startsWith("Link:")) || "").replace("Link:", "").trim();
     return { name, url };
   }
-  // Format 2: plain two lines "Name\nURL"
   return { name: lines[0] ?? "", url: lines[1] ?? "" };
 }
 
 /**
- * Parse game.txt → { name, subtitle, rtp, maxWin, volatility, playUrl, demoUrl }
+ * Parse game.txt → game hero settings
  *
- * Format (key: value lines):
- *   Game: Aviator
- *   Subtitle: Fly High, Bet Smart, Cash Out at the Perfect Moment
- *   RTP: 97%
- *   MaxWin: 10,000×
- *   Volatility: High
- *   PlayUrl: https://...   (optional, falls back to brend url)
- *   DemoUrl: https://...   (optional)
+ * Game: Aviator
+ * Subtitle: Fly High, Bet Smart
+ * RTP: 97%
+ * MaxWin: 10,000×
+ * Volatility: High
+ * PlayUrl: https://...    (optional — falls back to brend.url)
+ * DemoUrl: https://...    (optional)
+ * PlayLabel: Play Now
+ * DemoLabel: Try Demo Free
+ * AccentColor: #4f8ef7
  */
 function parseGame(filePath) {
   if (!existsSync(filePath)) return null;
@@ -134,14 +126,13 @@ function parseGame(filePath) {
     name:        get("Game")        || get("Name"),
     subtitle:    get("Subtitle"),
     rtp:         get("RTP")         || "97%",
-    maxWin:      get("MaxWin")      || get("Max.?Win") || "10,000×",
+    maxWin:      get("MaxWin")      || "10,000×",
     volatility:  get("Volatility")  || "High",
     playUrl:     get("PlayUrl")     || get("Play"),
     demoUrl:     get("DemoUrl")     || get("Demo"),
     playLabel:   get("PlayLabel")   || "Play Now",
     demoLabel:   get("DemoLabel")   || "Try Demo Free",
-    accentColor: get("AccentColor") || get("Accent") || "#4f8ef7",
-    multiplier:  get("Multiplier")  || "1.00",
+    accentColor: get("AccentColor") || "#4f8ef7",
   };
 }
 
@@ -154,7 +145,7 @@ function findAsset(dir, names) {
   return null;
 }
 
-/** Find all .txt files in a dir (non-recursive) */
+/** All .txt files in a directory (non-recursive) */
 function txtFilesIn(dir) {
   if (!existsSync(dir)) return [];
   return readdirSync(dir)
@@ -162,14 +153,10 @@ function txtFilesIn(dir) {
     .map(f => join(dir, f));
 }
 
-/** Build a seed content entry from a parsed txt file.
- *  slug always comes from the filename (id), never from inside the file.
- */
+/** Build a data entry. Slug = filename, never from file content. */
 function makeEntry(id, parsed, extra = {}) {
   return {
     id,
-    slug: id,
-    status: "published",
     data: {
       title:        parsed.title,
       seo_desc:     parsed.description,
@@ -182,23 +169,22 @@ function makeEntry(id, parsed, extra = {}) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  console.log("🎮 EmDash Game Site Generator\n");
+  console.log("🚀 Game Site Generator (static Astro)\n");
   console.log(`📂 Input:  ${inputDir}`);
   console.log(`📁 Output: ${outputDir}\n`);
 
   const textDir    = join(inputDir, "text");
   const authorDir  = join(textDir, "authors");
   const serviceDir = join(textDir, "service");
-  const seoDir     = join(textDir, "seo");   // skip content, only keyword data
 
-  // ── Brand info ──────────────────────────────────────────────────────────
+  // ── Brand ────────────────────────────────────────────────────────────────
   const brend = parseBrend(join(textDir, "brend.txt"));
   console.log(`🏷  Brand: ${brend.name || "(none)"}`);
   if (brend.url) console.log(`🔗 Affiliate: ${brend.url}`);
 
-  // ── Game stats (optional game.txt) ────────────────────────────────────
+  // ── Game hero settings ───────────────────────────────────────────────────
   const game = parseGame(join(textDir, "game.txt"));
-  if (game) console.log(`🎮 Game: ${game.name || "(unnamed)"} RTP:${game.rtp} MaxWin:${game.maxWin}`);
+  if (game) console.log(`🎮 Game: ${game.name || "(unnamed)"} RTP:${game.rtp}`);
 
   // ── Homepage ─────────────────────────────────────────────────────────────
   const mainFile = join(textDir, "main.txt");
@@ -210,274 +196,140 @@ async function main() {
   const siteName   = mainParsed.title || basename(inputDir);
   console.log(`📋 Site: "${siteName}"`);
 
-  // ── Article pages (root text/ dir, skip reserved files) ─────────────────
+  // ── Article pages ────────────────────────────────────────────────────────
   const SKIP_TXT = new Set(["main.txt", "brend.txt", "game.txt"]);
-  const articleEntries = [];
+  const pages = [makeEntry("main", mainParsed)];
   for (const f of txtFilesIn(textDir)) {
     if (SKIP_TXT.has(basename(f))) continue;
     const parsed = parseTxtFile(f);
     if (!parsed.html && !parsed.title) continue;
-    const id = basename(f, ".txt");           // always use filename, never Slug: field
-    articleEntries.push(makeEntry(id, parsed));
+    pages.push(makeEntry(basename(f, ".txt"), parsed));
   }
 
-  // ── Author pages ──────────────────────────────────────────────────────────
-  const authorEntries = [];
+  // ── Authors ──────────────────────────────────────────────────────────────
+  const authors = [];
   for (const f of txtFilesIn(authorDir)) {
     const parsed = parseTxtFile(f);
-    const stem = basename(f, ".txt");
-    const id   = stem;                        // filename wins
-    const photo = findAsset(authorDir, [`${stem}.webp`, `${stem}.jpg`, `${stem}.png`]);
-    authorEntries.push({
-      ...makeEntry(id, parsed),
-      data: {
-        ...makeEntry(id, parsed).data,
-        photo: photo ? { $media: { file: photo, alt: parsed.title } } : null,
-      },
-    });
+    const stem   = basename(f, ".txt");
+    const photo  = findAsset(authorDir, [`${stem}.webp`, `${stem}.jpg`, `${stem}.png`]);
+    authors.push(makeEntry(stem, parsed, {
+      // plain URL — no $media, no upload system needed
+      photo: photo ? { src: `/authors/${basename(photo)}`, alt: parsed.title } : null,
+    }));
   }
 
   // ── Service pages ─────────────────────────────────────────────────────────
-  const serviceEntries = [];
+  const servicePages = [];
   for (const f of txtFilesIn(serviceDir)) {
     const parsed = parseTxtFile(f);
-    const id = basename(f, ".txt");           // filename wins
-    serviceEntries.push(makeEntry(id, parsed));
+    servicePages.push(makeEntry(basename(f, ".txt"), parsed));
   }
 
-  console.log(`\n📄 Pages: ${articleEntries.length} articles, ${serviceEntries.length} service, ${authorEntries.length} authors`);
+  console.log(`\n📄 Pages: ${pages.length - 1} articles, ${servicePages.length} service, ${authors.length} authors`);
 
   // ── Assets ────────────────────────────────────────────────────────────────
   const bannerPath  = findAsset(inputDir, ["banner.webp", "banner.jpg", "banner.png"]);
   const logoPath    = findAsset(inputDir, ["logo.webp",   "logo.jpg",   "logo.png"]);
   const faviconPath = findAsset(inputDir, ["favicon.svg", "favicon.png", "favicon.ico"]);
-  // Game Hero background (optional): game-bg.webp / game-bg.jpg / game-bg.png in site root
   const gameBgPath  = findAsset(inputDir, ["game-bg.webp", "game-bg.jpg", "game-bg.png"]);
 
-  // ── Build seed.json ───────────────────────────────────────────────────────
-  console.log("\n🌱 Building seed.json...");
-
-  const seed = {
-    $schema: "https://emdashcms.com/seed.schema.json",
-    version: "1",
-    meta: {
-      name: siteName,
-      description: `Game guide site: ${siteName}`,
-      author: "game-site-generator",
-    },
-
-    settings: {
-      title: siteName,
-      tagline: mainParsed.description || "",
-      // Store brand info in settings custom fields
-      ...(brend.name ? { brandName: brend.name } : {}),
-      ...(brend.url  ? { brandUrl:  brend.url  } : {}),
-    },
-
-    collections: [
-      {
-        slug: "pages",
-        label: "Pages",
-        labelSingular: "Page",
-        supports: ["drafts", "revisions", "seo"],
-        urlPattern: "/{slug}",
-        fields: [
-          { slug: "title",        label: "Title",       type: "string", required: true, searchable: true },
-          { slug: "seo_desc",     label: "SEO Description", type: "text" },
-          { slug: "html_content", label: "HTML Content", type: "text",  searchable: true },
-        ],
-      },
-      {
-        slug: "service_pages",
-        label: "Service Pages",
-        labelSingular: "Service Page",
-        supports: ["drafts"],
-        urlPattern: "/{slug}",
-        fields: [
-          { slug: "title",        label: "Title",       type: "string", required: true },
-          { slug: "seo_desc",     label: "SEO Description", type: "text" },
-          { slug: "html_content", label: "HTML Content", type: "text" },
-        ],
-      },
-      {
-        slug: "authors",
-        label: "Authors",
-        labelSingular: "Author",
-        supports: ["drafts"],
-        urlPattern: "/authors/{slug}",
-        fields: [
-          { slug: "title",        label: "Name",        type: "string", required: true },
-          { slug: "seo_desc",     label: "SEO Description", type: "text" },
-          { slug: "html_content", label: "Bio HTML",    type: "text" },
-          { slug: "photo",        label: "Photo",       type: "image" },
-        ],
-      },
-      // ── Game Hero Block (editable from admin) ─────────────────────────────
-      {
-        slug: "game_hero",
-        label: "🎮 Game Hero Block",
-        labelSingular: "Game Hero",
-        supports: [],
-        fields: [
-          { slug: "enabled",    label: "Show Hero Block", type: "boolean" },
-          { slug: "game_name",  label: "Game Name",       type: "string" },
-          { slug: "subtitle",   label: "Subtitle",        type: "string" },
-          { slug: "multiplier", label: "Starting Multiplier (e.g. 1.00)", type: "string" },
-          { slug: "rtp",        label: "RTP",             type: "string" },
-          { slug: "max_win",    label: "Max Win",         type: "string" },
-          { slug: "volatility", label: "Volatility",      type: "string" },
-          { slug: "play_url",   label: "Play Now URL",    type: "string" },
-          { slug: "demo_url",   label: "Try Demo URL",    type: "string" },
-          { slug: "bg_image",   label: "Background Image",type: "image"  },
-          { slug: "play_label", label: "Play Button Text", type: "string" },
-          { slug: "demo_label", label: "Demo Button Text",  type: "string" },
-          { slug: "accent_color", label: "Accent Color (hex, e.g. #4f8ef7)", type: "string" },
-          { slug: "bg_url",      label: "Background Image URL (e.g. /game-bg.webp)", type: "string" },
-          { slug: "bg_image",    label: "Background Image (upload)",  type: "image"  },
-        ],
-      },
-    ],
-
-    menus: [
-      {
-        name: "primary",
-        label: "Primary Navigation",
-        items: [
-          { type: "custom", label: "Αρχική", url: "/" },
-          ...articleEntries.slice(0, 4).map(e => ({
-            type: "custom",
-            label: e.data.title?.split(/[\|:]/)[0]?.trim().slice(0, 30) ?? e.slug,
-            url: `/${e.slug}`,
-          })),
-        ],
-      },
-    ],
-
-    content: {
-      pages: [
-        // homepage as first page
-        makeEntry("main", mainParsed),
-        ...articleEntries,
-      ],
-      service_pages: serviceEntries,
-      authors: authorEntries,
-
-      // Game Hero Block — one entry "main", editable from admin
-      game_hero: [
-        {
-          id: "main",
-          slug: "main",
-          status: "published",
-          data: game ? {
-            enabled:       true,
-            game_name:     game.name       || siteName,
-            subtitle:      game.subtitle   || "",
-            multiplier:    game.multiplier || "1.00",
-            rtp:           game.rtp        || "97%",
-            max_win:       game.maxWin     || "10,000×",
-            volatility:    game.volatility || "High",
-            play_url:      game.playUrl    || brend.url || "",
-            demo_url:      game.demoUrl    || brend.url || "",
-            play_label:    game.playLabel  || "Play Now",
-            demo_label:    game.demoLabel  || "Try Demo Free",
-            accent_color:  game.accentColor || "#4f8ef7",
-            // bg_url — plain public path, always works; bg_image for admin upload
-            bg_url:   gameBgPath ? "/game-bg" + extname(gameBgPath) : "",
-            bg_image: null,
-          } : {
-            enabled: false,
-            game_name: siteName,
-            subtitle: "", rtp: "97%", max_win: "10,000×", volatility: "High",
-            play_url: brend.url || "", demo_url: brend.url || "",
-            play_label: "Play Now", demo_label: "Try Demo Free",
-            accent_color: "#4f8ef7", multiplier: "1.00",
-            bg_url: "", bg_image: null,
-          },
-        },
-      ],
-    },
+  // ── Game hero data ────────────────────────────────────────────────────────
+  const gameHero = game ? {
+    enabled:      true,
+    game_name:    game.name       || siteName,
+    subtitle:     game.subtitle   || "",
+    rtp:          game.rtp,
+    max_win:      game.maxWin,
+    volatility:   game.volatility,
+    play_url:     game.playUrl    || brend.url || "",
+    demo_url:     game.demoUrl    || brend.url || "",
+    play_label:   game.playLabel,
+    demo_label:   game.demoLabel,
+    accent_color: game.accentColor,
+    bg_url:       gameBgPath ? "/game-bg" + extname(gameBgPath) : "",
+  } : {
+    enabled: false,
   };
 
-  // ── Write output ───────────────────────────────────────────────────────────
+  // ── Copy template ─────────────────────────────────────────────────────────
   mkdirSync(outputDir, { recursive: true });
-
-  const seedDir = join(outputDir, ".emdash");
-  mkdirSync(seedDir, { recursive: true });
-  writeFileSync(join(seedDir, "seed.json"), JSON.stringify(seed, null, 2));
-  console.log(`✅ Seed written (${seed.content.pages.length} pages, ${serviceEntries.length} service, ${authorEntries.length} authors)`);
-
-  // Copy template
   if (existsSync(templateDir)) {
-    console.log("📁 Copying template...");
+    console.log("\n📁 Copying template...");
     copyDir(templateDir, outputDir);
   }
 
-  // Copy assets into public/
+  // ── Write data files (src/data/) ──────────────────────────────────────────
+  console.log("🗄  Writing data files...");
+  const dataDir = join(outputDir, "src", "data");
+  mkdirSync(dataDir, { recursive: true });
+  writeFileSync(join(dataDir, "pages.json"),         JSON.stringify(pages,        null, 2));
+  writeFileSync(join(dataDir, "service_pages.json"), JSON.stringify(servicePages, null, 2));
+  writeFileSync(join(dataDir, "authors.json"),        JSON.stringify(authors,      null, 2));
+  writeFileSync(join(dataDir, "game_hero.json"),      JSON.stringify(gameHero,     null, 2));
+  console.log(`✅ Data written (${pages.length} pages, ${servicePages.length} service, ${authors.length} authors)`);
+
+  // ── Write brand.json ──────────────────────────────────────────────────────
+  writeFileSync(
+    join(outputDir, "src", "brand.json"),
+    JSON.stringify({ name: brend.name, url: brend.url, siteName }, null, 2)
+  );
+
+  // ── Copy assets → public/ ─────────────────────────────────────────────────
   const publicDir = join(outputDir, "public");
   mkdirSync(publicDir, { recursive: true });
-  if (bannerPath)  { copyFileSync(bannerPath,  join(publicDir, "banner"  + extname(bannerPath)));  console.log("🖼  Copied banner"); }
-  if (logoPath)    { copyFileSync(logoPath,    join(publicDir, "logo"    + extname(logoPath)));    console.log("🖼  Copied logo"); }
-  if (faviconPath) { copyFileSync(faviconPath, join(publicDir, "favicon" + extname(faviconPath))); console.log("🖼  Copied favicon"); }
 
-  // Copy author photos into public/authors/
+  if (bannerPath)  { copyFileSync(bannerPath,  join(publicDir, "banner"  + extname(bannerPath)));  console.log("🖼  banner"); }
+  if (logoPath)    { copyFileSync(logoPath,    join(publicDir, "logo"    + extname(logoPath)));    console.log("🖼  logo"); }
+  if (faviconPath) { copyFileSync(faviconPath, join(publicDir, "favicon" + extname(faviconPath))); console.log("🖼  favicon"); }
+  if (gameBgPath)  { copyFileSync(gameBgPath,  join(publicDir, "game-bg" + extname(gameBgPath)));  console.log("🖼  game-bg"); }
+
+  // Author photos → public/authors/
   if (existsSync(authorDir)) {
     const authPublic = join(publicDir, "authors");
     mkdirSync(authPublic, { recursive: true });
     for (const f of readdirSync(authorDir)) {
       if (/\.(webp|jpg|jpeg|png)$/i.test(f)) {
         copyFileSync(join(authorDir, f), join(authPublic, f));
+        console.log(`🖼  authors/${f}`);
       }
     }
   }
 
-  // Copy game hero background if present
-  if (gameBgPath) {
-    copyFileSync(gameBgPath, join(publicDir, "game-bg" + extname(gameBgPath)));
-    console.log("🖼  Copied game-bg");
-  }
-
-  // Copy promo slide images from root: slide1.*, slide2.*, ... → public/slides/
-  const slidesPublic = join(publicDir, "slides");
+  // Slide images (slide1.*, slide2.*, …) → public/slides/
   let slideCount = 0;
   for (const f of readdirSync(inputDir)) {
     if (/^slide\d+\.(webp|jpg|jpeg|png)$/i.test(f)) {
-      mkdirSync(slidesPublic, { recursive: true });
-      copyFileSync(join(inputDir, f), join(slidesPublic, f));
-      console.log(`🖼  Copied slide: ${f}`);
+      mkdirSync(join(publicDir, "slides"), { recursive: true });
+      copyFileSync(join(inputDir, f), join(publicDir, "slides", f));
+      console.log(`🖼  slides/${f}`);
       slideCount++;
     }
   }
-  if (slideCount === 0) console.log("ℹ️  No slide images found (slide1.webp, slide2.webp …)");
 
-  // Patch package.json name
+  // ── robots.txt ────────────────────────────────────────────────────────────
+  const domain = basename(inputDir);
+  writeFileSync(join(publicDir, "robots.txt"), [
+    "User-agent: *",
+    "Allow: /",
+    `Sitemap: https://${domain}/sitemap.xml`,
+    "",
+  ].join("\n"));
+
+  // ── Patch package.json name ───────────────────────────────────────────────
   const pkgPath = join(outputDir, "package.json");
   if (existsSync(pkgPath)) {
     const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
-    pkg.name = basename(inputDir).toLowerCase().replace(/[^a-z0-9-]/g, "-");
+    pkg.name = domain.toLowerCase().replace(/[^a-z0-9-]/g, "-");
     writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
   }
 
-  // Write brand config for template to read
-  writeFileSync(
-    join(outputDir, "src", "brand.json"),
-    JSON.stringify({
-      name: brend.name,
-      url: brend.url,
-      siteName,
-      // game stats for GameHero component (null when game.txt absent)
-      ...(game ? {
-        game: {
-          name:       game.name       || siteName,
-          subtitle:   game.subtitle,
-          rtp:        game.rtp,
-          maxWin:     game.maxWin,
-          volatility: game.volatility,
-          playUrl:    game.playUrl    || brend.url,
-          demoUrl:    game.demoUrl    || brend.url,
-        }
-      } : {}),
-    }, null, 2)
-  );
+  // ── Patch astro.config.mjs with real site URL ─────────────────────────────
+  const astroCfgPath = join(outputDir, "astro.config.mjs");
+  if (existsSync(astroCfgPath)) {
+    let cfg = readFileSync(astroCfgPath, "utf-8");
+    cfg = cfg.replace(/site:\s*"https:\/\/example\.com"/, `site: "https://${domain}"`);
+    writeFileSync(astroCfgPath, cfg);
+  }
 
   console.log(`
 ✨ Done! Site ready in: ${outputDir}
@@ -485,24 +337,40 @@ async function main() {
 Next steps:
   cd ${outputDir}
   npm install
-  npm run bootstrap
-  npm run dev
+  npm run dev      ← development server
 
-Admin:   http://localhost:4321/_emdash/admin
+  npm run build    ← build static files → dist/
+  npm run preview  ← preview the build locally
+
 Site:    http://localhost:4321
 `);
 }
 
 // ─── Utils ────────────────────────────────────────────────────────────────────
 
-// Files handled natively by emdash 0.5.0 — skip from template copy
-const SKIP_FILES = new Set(["sitemap.xml.ts", "robots.txt.ts"]);
+// Skip these entries (files or dirs) when copying the template
+const SKIP_ENTRIES = new Set([
+  // emdash runtime — not needed for static sites
+  "live.config.ts",
+  "middleware.ts",
+  "sitemap.xml.ts",   // replaced by sitemap.xml.js
+  "robots.txt.ts",    // replaced by public/robots.txt written by generator
+  // old/unused page directories from previous template versions
+  "games",
+  "genre",
+  "platform",
+  "seo",
+  // build artifacts and data
+  "node_modules",
+  "dist",
+  ".emdash",
+  "data",             // src/data/ is always written fresh by generator
+]);
 
 function copyDir(src, dest) {
   mkdirSync(dest, { recursive: true });
   for (const entry of readdirSync(src)) {
-    if (["node_modules", "dist", ".emdash"].includes(entry)) continue;
-    if (SKIP_FILES.has(entry)) continue;
+    if (SKIP_ENTRIES.has(entry)) continue;
     const srcPath  = join(src, entry);
     const destPath = join(dest, entry);
     if (statSync(srcPath).isDirectory()) {

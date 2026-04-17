@@ -1,24 +1,23 @@
 ---
-import { getEmDashCollection } from "emdash";
 import Base from "../../layouts/Base.astro";
+import authorsData from "../../data/authors.json";
 
-const { slug } = Astro.params as { slug: string };
-
-const { entries: authors } = await getEmDashCollection("authors");
-const author = authors.find(a => a.id === slug) ?? null;
-
-if (!author) {
-  return Astro.redirect("/404", 404);
+export function getStaticPaths() {
+  return (authorsData as any[]).map((author: any) => ({
+    params: { slug: author.id },
+    props:  { author },
+  }));
 }
 
-const name     = (author.data?.title        as string) ?? "";
-const seoDesc  = (author.data?.seo_desc     as string) ?? "";
-const bio      = (author.data?.html_content as string) ?? "";
-const photoSrc = (author.data?.photo as any)?.url ?? `/authors/${slug}.webp`;
+const { author } = Astro.props as { author: any };
+const name    = (author.data?.title        as string) ?? "";
+const seoDesc = (author.data?.seo_desc     as string) ?? "";
+const bio     = (author.data?.html_content as string) ?? "";
+const photo   = author.data?.photo as { src?: string; alt?: string } | null | undefined;
+const photoSrc = photo?.src ?? `/authors/${author.id}.webp`;
 
-const origin     = (Astro.site ?? Astro.url.origin).toString();
-const authorUrl  = new URL(`/authors/${slug}/`, origin).href;
-const photoUrl   = new URL(photoSrc, origin).href;
+const origin    = (Astro.site?.toString() ?? "").replace(/\/$/, "");
+const authorUrl = `${origin}/authors/${author.id}/`;
 
 const personData = {
   "@context": "https://schema.org",
@@ -26,15 +25,15 @@ const personData = {
   "name": name,
   "url": authorUrl,
   "description": seoDesc || undefined,
-  "image": photoUrl,
+  "image": `${origin}${photoSrc}`,
 };
 
 const breadcrumbData = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": "Αρχική",    "item": new URL("/", origin).href },
-    { "@type": "ListItem", "position": 2, "name": "Συντάκτης", "item": new URL("/authors/", origin).href },
+    { "@type": "ListItem", "position": 1, "name": "Αρχική",    "item": `${origin}/` },
+    { "@type": "ListItem", "position": 2, "name": "Συντάκτης", "item": `${origin}/authors/` },
     { "@type": "ListItem", "position": 3, "name": name,         "item": authorUrl },
   ],
 };
@@ -43,6 +42,7 @@ const breadcrumbData = {
 <Base title={name} description={seoDesc}>
   <script type="application/ld+json" set:html={JSON.stringify(personData)} />
   <script type="application/ld+json" set:html={JSON.stringify(breadcrumbData)} />
+
   <div class="container" style="padding-top:1.5rem;">
     <nav class="breadcrumb">
       <a href="/">Αρχική</a>
@@ -68,12 +68,10 @@ const breadcrumbData = {
             {seoDesc && <p style="color:var(--color-text-2); font-size:0.95rem;">{seoDesc}</p>}
           </div>
         </div>
-
-        {bio ? (
-          <div class="article-content" set:html={bio} />
-        ) : (
-          <p style="color:var(--color-muted);">Βιογραφικό σύντομα…</p>
-        )}
+        {bio
+          ? <div class="article-content" set:html={bio} />
+          : <p style="color:var(--color-muted);">Βιογραφικό σύντομα…</p>
+        }
       </article>
     </div>
   </div>

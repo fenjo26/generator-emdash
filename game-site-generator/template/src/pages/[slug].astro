@@ -1,45 +1,43 @@
 ---
-import { getEmDashCollection } from "emdash";
 import Base from "../layouts/Base.astro";
 import GameHero from "../components/GameHero.astro";
+import pagesData from "../data/pages.json";
+import servicePagesData from "../data/service_pages.json";
+import authorsData from "../data/authors.json";
 import brand from "../brand.json";
-import { getSiteSettings } from "emdash";
 
-const { slug } = Astro.params as { slug: string };
-
-const [{ entries: pages }, { entries: servicePages }, { entries: authors }, settings] = await Promise.all([
-  getEmDashCollection("pages"),
-  getEmDashCollection("service_pages"),
-  getEmDashCollection("authors"),
-  getSiteSettings(),
-]);
-
-const entry = pages.find(p => p.id === slug) ?? servicePages.find(p => p.id === slug) ?? null;
-
-if (!entry) {
-  return Astro.redirect("/404", 404);
+export function getStaticPaths() {
+  const allEntries = [
+    ...(pagesData as any[]).filter((p: any) => p.id !== "main"),
+    ...(servicePagesData as any[]),
+  ];
+  return allEntries.map((entry: any) => ({
+    params: { slug: entry.id },
+    props:  { entry },
+  }));
 }
 
-const title       = (entry.data?.title        as string) ?? "";
-const seoDesc     = (entry.data?.seo_desc     as string) ?? "";
-const rawHtml     = (entry.data?.html_content as string) ?? "";
+const { entry } = Astro.props as { entry: any };
+const { slug }  = Astro.params;
 
-// Извлекаем H1 из html_content, убираем из тела
+const title   = (entry.data?.title        as string) ?? "";
+const seoDesc = (entry.data?.seo_desc     as string) ?? "";
+const rawHtml = (entry.data?.html_content as string) ?? "";
+
+// Extract H1 from content
 const h1Match  = rawHtml.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
 const pageH1   = h1Match ? h1Match[1].replace(/<[^>]+>/g, "").trim() : title;
 const bodyHtml = rawHtml.replace(/<h1[^>]*>[\s\S]*?<\/h1>/i, "").trim();
 
-// Сайдбар — похожие статьи
-const related = pages
-  .filter(p => p.id !== "main" && p.id !== slug)
+// Related articles for sidebar
+const related = (pagesData as any[])
+  .filter((p: any) => p.id !== "main" && p.id !== slug)
   .slice(0, 8);
 
-// ── Table of Contents ─────────────────────────────────────────────────────────
-// Извлекаем все H2 из bodyHtml, добавляем id-якоря
+// Table of Contents from H2 headings
 function slugifyHeading(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/<[^>]+>/g, "")           // убираем теги внутри заголовка
+  return text.toLowerCase()
+    .replace(/<[^>]+>/g, "")
     .replace(/[^\w\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/^-+|-+$/g, "");
@@ -47,10 +45,9 @@ function slugifyHeading(text: string): string {
 
 interface TocItem { id: string; text: string; }
 const tocItems: TocItem[] = [];
-
 const bodyHtmlWithAnchors = bodyHtml.replace(
   /<h2([^>]*)>([\s\S]*?)<\/h2>/gi,
-  (_match, attrs, inner) => {
+  (_match: string, attrs: string, inner: string) => {
     const text = inner.replace(/<[^>]+>/g, "").trim();
     const id   = slugifyHeading(text) || `section-${tocItems.length + 1}`;
     tocItems.push({ id, text });
@@ -58,13 +55,12 @@ const bodyHtmlWithAnchors = bodyHtml.replace(
   }
 );
 
-const hasBrand = !!brand.name && !!brand.url;
-
-const origin   = (Astro.site ?? Astro.url.origin).toString();
-const pageUrl  = new URL(`/${slug}/`, origin).href;
-const siteUrl  = new URL("/", origin).href;
-const siteName = brand.siteName || settings.title || "GameGuide";
-const firstAuthor = authors[0]?.data?.title as string | undefined;
+const hasBrand    = !!brand.name && !!brand.url;
+const firstAuthor = (authorsData as any[])[0] ?? null;
+const siteName    = brand.siteName || "GameGuide";
+const origin      = (Astro.site?.toString() ?? "").replace(/\/$/, "");
+const pageUrl     = `${origin}/${slug}/`;
+const siteUrl     = `${origin}/`;
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -77,13 +73,13 @@ const structuredData = {
     "@type": "Organization",
     "name": siteName,
     "url": siteUrl,
-    "logo": { "@type": "ImageObject", "url": new URL("/logo.webp", origin).href },
+    "logo": { "@type": "ImageObject", "url": `${origin}/logo.webp` },
   },
   ...(firstAuthor ? {
     "author": {
       "@type": "Person",
-      "name": firstAuthor,
-      "url": new URL(`/authors/${authors[0].id}/`, origin).href,
+      "name": firstAuthor.data.title,
+      "url": `${origin}/authors/${firstAuthor.id}/`,
     },
   } : {}),
 };
@@ -102,7 +98,7 @@ const breadcrumbData = {
   <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
   <script type="application/ld+json" set:html={JSON.stringify(breadcrumbData)} />
 
-  <!-- GameHero block — fetches settings from CMS game_hero collection -->
+  <!-- Game Hero (only when game.txt is present) -->
   <GameHero />
 
   <div class="container" style="padding-top:1.5rem;">
@@ -114,10 +110,9 @@ const breadcrumbData = {
   </div>
 
   <div class="container">
-    <div class={`article-layout${!hasBrand && related.length === 0 ? ' article-layout--full' : ''}`}>
+    <div class={`article-layout${!hasBrand && related.length === 0 ? " article-layout--full" : ""}`}>
 
       <article>
-        <!-- H1 из txt-файла страницы -->
         <h1 style="font-size:clamp(1.5rem,4vw,2.25rem); font-weight:900; line-height:1.2; margin-bottom:1.5rem;">
           {pageH1}
         </h1>
@@ -138,11 +133,10 @@ const breadcrumbData = {
           </nav>
         )}
 
-        {bodyHtmlWithAnchors ? (
-          <div class="article-content" set:html={bodyHtmlWithAnchors} />
-        ) : (
-          <p style="color:var(--color-muted);">Περιεχόμενο σύντομα…</p>
-        )}
+        {bodyHtmlWithAnchors
+          ? <div class="article-content" set:html={bodyHtmlWithAnchors} />
+          : <p style="color:var(--color-muted);">Περιεχόμενο σύντομα…</p>
+        }
       </article>
 
       {(hasBrand || related.length > 0) && (
@@ -164,7 +158,7 @@ const breadcrumbData = {
             <div class="sidebar-card">
               <div class="sidebar-card__title">Σχετικά Άρθρα</div>
               <ul class="sidebar-nav">
-                {related.map(p => (
+                {related.map((p: any) => (
                   <li>
                     <a href={`/${p.id}/`}>
                       {(p.data.title as string).split(/[|:—–]/)[0].trim()}

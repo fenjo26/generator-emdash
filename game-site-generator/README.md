@@ -1,8 +1,8 @@
-# EmDash Game Site Generator
+# Game Site Generator
 
-Генератор игровых гайд-сайтов на базе [EmDash CMS](https://github.com/emdash-cms/emdash) + Astro.
+Генератор игровых гайд-сайтов. Читает папку с SEO-текстами и изображениями → собирает готовый **статический Astro-сайт**.
 
-Ты готовишь папку с SEO-текстами и изображениями → скрипт собирает готовый сайт со всем необходимым.
+Никакой БД. Никакого CMS-сервера. Просто JSON + Astro → HTML.
 
 ---
 
@@ -11,17 +11,22 @@
 ```bash
 # 1. Подготовь папку с контентом (см. структуру ниже)
 
-# 2. Запусти генератор
+# 2. Сгенерируй сайт
 node generate.js --input ./testseo/my-site.gr --output ./sites/my-site.gr
 
-# 3. Перейди в папку сайта и запусти
+# 3. Запусти
 cd sites/my-site.gr
 npm install
-npx emdash dev
+npm run dev
 ```
 
-Сайт: `http://localhost:4321`  
-Админка: `http://localhost:4321/_emdash/admin`
+Сайт: `http://localhost:4321`
+
+Для продакшена:
+```bash
+npm run build    # → dist/
+npm run preview  # превью билда
+```
 
 ---
 
@@ -32,31 +37,29 @@ my-site.gr/
 ├── banner.webp          # фон hero-секции (также .jpg / .png)
 ├── logo.webp            # логотип в шапке (также .jpg / .png)
 ├── favicon.svg          # иконка вкладки (также .png / .ico)
-├── game-bg.webp         # (необязательно) фон для Game Hero блока
+├── game-bg.webp         # (необязательно) фон Game Hero блока
 ├── slide1.webp          # (необязательно) первый промо-баннер
 ├── slide2.webp          # (необязательно) второй промо-баннер
 └── text/
     ├── brend.txt        # (необязательно) партнёрский бренд
     ├── game.txt         # (необязательно) настройки Game Hero блока
     ├── main.txt         # главная страница (обязательно)
-    ├── cs2-weapons.txt  # статья-гайд
-    ├── bf6-classes.txt  # ещё статья
-    ├── ...              # любое количество статей
+    ├── cs2-weapons.txt  # статья → /cs2-weapons/
+    ├── bf6-classes.txt  # статья → /bf6-classes/
+    ├── ...
     ├── seo/             # игнорируется — только для ключевых слов
     ├── authors/
-    │   ├── nikos.txt    # страница автора
+    │   ├── nikos.txt    # страница автора → /authors/nikos/
     │   └── nikos.webp   # фото автора
     └── service/
-        ├── about-us.txt
-        ├── contacts.txt
-        └── privacy-policy.txt
+        ├── about-us.txt       # → /about-us/
+        ├── contacts.txt       # → /contacts/
+        └── privacy-policy.txt # → /privacy-policy/
 ```
 
 ---
 
 ## Формат .txt файлов
-
-Каждый файл состоит из двух блоков:
 
 ```
 META-ТЕГИ:
@@ -70,14 +73,11 @@ Description: Πλήρης οδηγός για όλα τα όπλα στο Counte
 
 - `Title` — title тег и мета-заголовок
 - `Description` — meta description
-- Всё после `текст:` — HTML-контент. `<h1>` автоматически поднимается в hero-секцию страницы.
+- `текст:` — HTML-контент. `<h1>` автоматически поднимается в hero-секцию.
 
-> **URL страницы определяется именем файла**, а не содержимым. Файл `cs2-weapons.txt` → URL `/cs2-weapons/`. Поле `Slug:` внутри файла игнорируется. Это гарантирует что автоматически сгенерированный контент никогда не создаст неожиданных URL.
+> **URL определяется именем файла**, а не содержимым. `cs2-weapons.txt` → `/cs2-weapons/`. Поле `Slug:` внутри файла игнорируется.
 
-Зарезервированные имена (не создают страниц):
-- `main.txt` — контент главной страницы
-- `brend.txt` — партнёрский бренд
-- `game.txt` — настройки Game Hero блока
+Зарезервированные имена (не создают страниц): `main.txt`, `brend.txt`, `game.txt`
 
 ---
 
@@ -94,13 +94,13 @@ Casino Name
 https://link.com
 ```
 
-Если файл отсутствует или пустой — все партнёрские блоки (CTA-баннер, промо-слайды, сайдбар, иконки платёжных методов, compliance-логотипы) скрываются автоматически.
+Если файла нет — все партнёрские блоки (CTA-баннер, промо-слайды, сайдбар, платёжные иконки, compliance-логотипы) скрываются автоматически.
 
 ---
 
-## Формат game.txt (Game Hero блок)
+## Формат game.txt
 
-Добавь `game.txt` в папку `text/` чтобы включить анимированный hero-блок игры на всех страницах сайта:
+Добавь `game.txt` в папку `text/` чтобы включить анимированный Game Hero блок:
 
 ```
 Game: Aviator
@@ -113,85 +113,22 @@ DemoUrl: https://casino-link.com
 PlayLabel: Play Now
 DemoLabel: Try Demo Free
 AccentColor: #4f8ef7
-Multiplier: 1.00
 ```
 
-Все эти поля редактируются и через админку — без перегенерации сайта.
+Если `game.txt` нет — блок не отображается. Если нет `PlayUrl`/`DemoUrl` — используется ссылка из `brend.txt`.
 
-Для кастомного фона блока положи `game-bg.webp` (или `.jpg` / `.png`) в корень папки сайта.
-
-Если `game.txt` нет — блок отключён (`enabled: false`) и не отображается.
+Для кастомного фона положи `game-bg.webp` (или `.jpg` / `.png`) в корень папки.
 
 ---
 
 ## Что делает генератор
 
 1. Парсит все `.txt` файлы из `text/`
-2. Собирает `seed.json` со всеми коллекциями EmDash
-3. Копирует шаблон сайта
-4. Копирует ассеты (`banner`, `logo`, `favicon`, фото авторов, промо-слайды, `game-bg`) в `public/`
-5. Записывает `src/brand.json` с данными бренда
-6. Патчит `package.json` (имя пакета = имя домена)
-
----
-
-## Коллекции EmDash
-
-| Коллекция | Что хранит | URL |
-|-----------|-----------|-----|
-| `pages` | Главная + все статьи | `/`, `/{slug}/` |
-| `service_pages` | Служебные страницы | `/{slug}/` |
-| `authors` | Авторы | `/authors/{slug}/` |
-| `game_hero` | Настройки Game Hero блока | только в админке |
-
-Все коллекции редактируются из `/_emdash/admin`.
-
----
-
-## Game Hero блок
-
-Анимированный интерактивный блок для игровых страниц — показывается на главной и всех статьях.
-
-**Что отображается:**
-- Летящий самолёт по анимированной кривой множителя
-- Счётчик множителя (анимируется от 1.00 вверх при каждой загрузке)
-- Карточки статистики: RTP, Max Win, Volatility
-- Кнопки Play Now и Try Demo Free
-- Кастомный фон (загружается через админку или из `game-bg.webp`)
-- Акцентный цвет меняет кнопки, glow-эффекты и значения статистики
-
-**Редактирование через админку** (`Game Hero Block`):
-
-| Поле | Описание |
-|------|----------|
-| Show Hero Block | Вкл/выкл блок без пересборки сайта |
-| Game Name | Название игры (большой заголовок) |
-| Subtitle | Подпись под названием |
-| RTP / Max Win / Volatility | Значения в карточках статистики |
-| Play Now URL / Try Demo URL | Ссылки на кнопках (если пусто — берётся ссылка из `brend.txt`) |
-| Play Button Text / Demo Button Text | Текст кнопок на любом языке |
-| Accent Color | HEX-цвет акцента |
-| Background Image URL | Путь к картинке в `public/`, например `/game-bg.webp` |
-| Background Image | Загрузи картинку прямо через медиабиблиотеку AdminUI |
-
-Кнопки Play / Demo никогда не покажут 404: если URL не задан явно, используется ссылка из `brend.txt`.
-
-**Фон блока** — три способа (в порядке приоритета):
-1. Картинка загружена через Admin → поле `Background Image`
-2. Путь прописан вручную → поле `Background Image URL`
-3. Файл `game-bg.webp` в корне папки сайта → заполняется автоматически при генерации
-
----
-
-## Футер
-
-Футер состоит из трёх колонок (название сайта, статьи, служебные страницы) и нескольких дополнительных блоков, которые появляются только когда задан `brend.txt`:
-
-**Иконки платёжных методов** — Visa, Mastercard, BTC, ETH, USDT, SOL, TRX  
-**Дисклеймер** — ΠΑΙΞΕ ΥΠΕΥΘΥΝΑ с текстом об ответственной игре  
-**Compliance-логотипы** — MGA, BeGambleAware, GamCare, 18+, DMCA Protected
-
-Все SVG-иконки хранятся в `public/icons/` шаблона и копируются в каждый сайт при генерации.
+2. Записывает `src/data/*.json` — данные сайта (страницы, авторы, настройки)
+3. Копирует шаблон Astro
+4. Копирует ассеты в `public/` (banner, logo, favicon, фото авторов, слайды, game-bg)
+5. Записывает `robots.txt` с ссылкой на sitemap
+6. Прописывает реальный домен в `astro.config.mjs`
 
 ---
 
@@ -199,104 +136,81 @@ Multiplier: 1.00
 
 ```
 template/
-├── astro.config.mjs        # Astro + EmDash, output: server, trailingSlash: ignore
-├── package.json            # emdash ^0.5.0
+├── astro.config.mjs         # static output, trailingSlash: always
+├── package.json             # только astro (~5 MB node_modules)
 ├── public/
-│   └── icons/              # SVG иконки платёжных методов и compliance-логотипы
+│   └── icons/               # SVG иконки (платёжные методы, compliance)
 └── src/
-    ├── brand.json          # генерируется автоматически
-    ├── middleware.ts        # подключает EmDash middleware
-    ├── live.config.ts      # регистрация коллекций EmDash
+    ├── brand.json           # генерируется (бренд + название сайта)
+    ├── data/                # генерируется (JSON данные контента)
+    │   ├── pages.json
+    │   ├── service_pages.json
+    │   ├── authors.json
+    │   └── game_hero.json
     ├── components/
-    │   └── GameHero.astro  # анимированный Game Hero блок
+    │   └── GameHero.astro   # анимированный Game Hero блок
     ├── layouts/
-    │   └── Base.astro      # шапка, футер, мета-теги, SEO, WebSite schema
+    │   └── Base.astro       # шапка, футер, мета-теги, SEO
     ├── pages/
-    │   ├── index.astro     # главная: hero + Game Hero + промо-слайды + статьи
-    │   ├── [slug].astro    # страница статьи: TOC + сайдбар + structured data
+    │   ├── index.astro      # главная
+    │   ├── [slug].astro     # статьи и служебные страницы
+    │   ├── sitemap.xml.js   # автогенерация sitemap
     │   └── authors/
-    │       └── [slug].astro # страница автора с Person schema
+    │       └── [slug].astro # страницы авторов
     └── styles/
-        └── theme.css       # тёмная игровая тема
+        └── theme.css        # тёмная игровая тема
 ```
 
 ---
 
-## URL и canonical
+## Game Hero блок
 
-Все URL генерируются с trailing slash: `cs2-weapons.txt` → `/cs2-weapons/`.
+Анимированный блок — летящий самолёт, счётчик множителя, статистика игры.
 
-Canonical тег всегда нормализован: даже если браузер зайдёт на `/cs2-weapons` без слэша, canonical в `<head>` будет `/cs2-weapons/`. Это исключает дублирование страниц в индексе Google.
-
----
-
-## SEO и structured data
-
-На каждой странице автоматически генерируются:
-
-- `WebSite` schema с `SearchAction` (в Base.astro на всех страницах)
-- `Article` schema с автором и издателем (на страницах статей)
-- `BreadcrumbList` schema (на страницах статей и авторов)
-- `Person` schema (на страницах авторов)
-- Таблица содержания (TOC) из H2-заголовков — показывается если заголовков 3 и больше
+| Поле в game.txt | Описание |
+|-----------------|----------|
+| `Game` | Название игры |
+| `Subtitle` | Подпись под названием |
+| `RTP` / `MaxWin` / `Volatility` | Статистика в карточках |
+| `PlayUrl` / `DemoUrl` | Ссылки на кнопках (fallback: `brend.txt`) |
+| `PlayLabel` / `DemoLabel` | Текст кнопок |
+| `AccentColor` | HEX акцентного цвета |
+| `game-bg.webp` (файл) | Фон секции |
 
 ---
 
-## Настройка админки (первый запуск)
+## Футер
 
-При первом открытии `/_emdash/admin` сайт перенаправит на мастер настройки. Создашь аккаунт через Passkey (Touch ID / Face ID).
+Футер содержит три колонки (сайт, статьи, служебные страницы). Блоки ниже появляются только когда задан `brend.txt`:
 
-Добавь `.env` в папку сайта чтобы токены оставались валидными после перезапуска:
+- Иконки платёжных методов — Visa, Mastercard, BTC, ETH, USDT, SOL, TRX
+- Дисклеймер — ΠΑΙΞΕ ΥΠΕΥΘΥΝΑ
+- Compliance-логотипы — MGA, BeGambleAware, GamCare, 18+, DMCA
 
-```bash
-# Сгенерировать секрет
-node_modules/.bin/emdash auth secret
-
-# Добавить в .env
-echo "EMDASH_AUTH_SECRET=<твой-секрет>" > .env
-```
+SVG-иконки в `public/icons/`, автоматически копируются в каждый сайт.
 
 ---
 
-## CLI управление контентом
+## SEO
 
-```bash
-# Авторизация (device code через браузер)
-node_modules/.bin/emdash login --url http://localhost:4321
+Каждая страница генерирует:
 
-# Просмотр контента
-node_modules/.bin/emdash content list pages
-node_modules/.bin/emdash content get pages cs2-weapons-guide
-
-# Изменение статуса
-node_modules/.bin/emdash content publish pages cs2-weapons-guide
-node_modules/.bin/emdash content unpublish pages cs2-weapons-guide
-
-# Поиск
-node_modules/.bin/emdash search "οδηγός"
-```
-
----
-
-## Запуск нескольких сайтов
-
-```bash
-cd sites
-./start-sites.sh
-```
-
-Скрипт убивает порты 4321/4322 и запускает каждый сайт на своём порту.
+- `<title>`, `<meta description>`, canonical с trailing slash
+- `WebSite` schema с `SearchAction` (все страницы)
+- `Article` + `BreadcrumbList` schema (статьи)
+- `Person` + `BreadcrumbList` schema (авторы)
+- TOC из H2-заголовков (если ≥ 3 заголовков)
+- `/sitemap.xml` — автоматически из всех страниц
+- `/robots.txt` — с ссылкой на sitemap
 
 ---
 
 ## Тестовые сайты
 
-| Папка | Порт | Домен |
-|-------|------|-------|
-| `sites/battlefild6.gr` | 4321 | battlefild6.gr |
-| `sites/conter-strike2.gr` | 4322 | conter-strike2.gr |
-
-Входные данные: `testseo/battlefild6.gr/` и `testseo/conter-strike2.gr/`
+| Папка | Порт |
+|-------|------|
+| `sites/battlefild6.gr` | 4321 |
+| `sites/conter-strike2.gr` | 4322 |
 
 Перегенерация:
 ```bash
