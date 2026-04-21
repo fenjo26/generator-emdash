@@ -13,7 +13,9 @@ interface Props {
 
 const siteName = brand.siteName || "GameGuide";
 const { title, description = "", noIndex = false } = Astro.props;
-const pageTitle = title ? `${title} — ${siteName}` : siteName;
+// Title берётся из txt AS IS — SEO пишет полный тайтл сам.
+// Если title не передан (главная) — используем siteName.
+const pageTitle = title || siteName;
 
 // Canonical always with trailing slash
 const rawPath = Astro.url.pathname;
@@ -82,6 +84,22 @@ function slugToLabel(slug: string): string {
         "target": { "@type": "EntryPoint", "urlTemplate": `${origin}/search?q={search_term_string}` },
         "query-input": "required name=search_term_string",
       },
+    })} />
+
+    <!-- Organization schema — publisher присутствует на каждой странице -->
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "@id": `${origin}/#organization`,
+      "name": brand.name || siteName,
+      "url": brand.url || `${origin}/`,
+      "logo": {
+        "@type": "ImageObject",
+        "url": `${origin}/logo.webp`,
+      },
+      ...(brand.name && brand.url ? {
+        "sameAs": [ brand.url ],
+      } : {}),
     })} />
   </head>
   <body>

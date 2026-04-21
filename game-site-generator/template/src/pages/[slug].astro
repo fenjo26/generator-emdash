@@ -7,17 +7,18 @@ import authorsData from "../data/authors.json";
 import brand from "../brand.json";
 
 export function getStaticPaths() {
+  const serviceIds = new Set((servicePagesData as any[]).map((p: any) => p.id));
   const allEntries = [
     ...(pagesData as any[]).filter((p: any) => p.id !== "main"),
     ...(servicePagesData as any[]),
   ];
   return allEntries.map((entry: any) => ({
     params: { slug: entry.id },
-    props:  { entry },
+    props:  { entry, isService: serviceIds.has(entry.id) },
   }));
 }
 
-const { entry } = Astro.props as { entry: any };
+const { entry, isService } = Astro.props as { entry: any; isService: boolean };
 const { slug }  = Astro.params;
 
 const title   = (entry.data?.title        as string) ?? "";
@@ -62,19 +63,33 @@ const origin      = (Astro.site?.toString() ?? "").replace(/\/$/, "");
 const pageUrl     = `${origin}/${slug}/`;
 const siteUrl     = `${origin}/`;
 
-const structuredData = {
+const publisher = {
+  "@type": "Organization",
+  "@id": `${origin}/#organization`,
+  "name": brand.name || siteName,
+  "url": brand.url || siteUrl,
+  "logo": { "@type": "ImageObject", "url": `${origin}/logo.webp` },
+};
+
+// Служебные страницы (privacy-policy, about-us, contacts…) → WebPage
+// Контентные статьи → Article
+const structuredData = isService ? {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": pageH1,
+  "description": seoDesc,
+  "url": pageUrl,
+  "@id": pageUrl,
+  "publisher": publisher,
+  "isPartOf": { "@type": "WebSite", "@id": `${origin}/` },
+} : {
   "@context": "https://schema.org",
   "@type": "Article",
   "headline": pageH1,
   "description": seoDesc,
   "url": pageUrl,
   "mainEntityOfPage": { "@type": "WebPage", "@id": pageUrl },
-  "publisher": {
-    "@type": "Organization",
-    "name": brand.name || siteName,
-    "url": brand.url || siteUrl,
-    "logo": { "@type": "ImageObject", "url": `${origin}/logo.webp` },
-  },
+  "publisher": publisher,
   ...(firstAuthor ? {
     "author": {
       "@type": "Person",
@@ -94,7 +109,7 @@ const breadcrumbData = {
 };
 ---
 
-<Base title={pageH1} description={seoDesc}>
+<Base title={title || pageH1} description={seoDesc}>
   <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
   <script type="application/ld+json" set:html={JSON.stringify(breadcrumbData)} />
 
